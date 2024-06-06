@@ -91,10 +91,14 @@ public class PubSubSuscriber {
             Datum data = new Datum();
             data.setAsnId(jsonIn.getAsnReference());
             data.setAsnLevelId("ITEM");
-            data.setAsnOriginTypeId("W");//jsonIn.getAsnTypeCode().toString()
+            data.setAsnOriginTypeId(jsonIn.getAsnTypeCode().toString());
             data.setAsnStatus("1000");
             data.setCanceled(false);
-            data.setDestinationFacilityId("30024");//jsonIn.getDestinationBusinessUnitId().toString()
+            data.setDestinationFacilityId(
+                    jsonIn.getDestinationBusinessUnitId() < 30000 ?
+                            String.format("T%03d", jsonIn.getDestinationBusinessUnitId()).replace(' ', '0') :
+                            String.valueOf(jsonIn.getDestinationBusinessUnitId())
+            );
             Lpn lpn = jsonIn.getLpns().get(0);
             List<AsnLine> asnLines = new ArrayList<>();
             int lineidsize = 0;
@@ -104,8 +108,9 @@ public class PubSubSuscriber {
                 asnLines.add(asnLine);
             }
             data.setAsnLine(asnLines);
-            data.setLpn(new ArrayList<>());
-            data.setOriginFacilityId("30001");//jsonIn.getSourceBusinessUnitId().toString()//30024
+            data.setLpn(new ArrayList<>());//jsonIn.getSourceBusinessUnitId()
+            data.setOriginFacilityId("TEXCOCO");
+
             data.setShippedDate(dateFormat.format(Calendar.getInstance().getTime()));// Añadir fecha actual
             data.setShippedLpns(0.0);
             data.setVendorId(null);
@@ -166,5 +171,14 @@ public class PubSubSuscriber {
         }
     }
 
+    private String getSourceBusinessUnit(int sourceBusinessUnitId) {
+        if (sourceBusinessUnitId < 30000) {
+            return String.format("T%03d", sourceBusinessUnitId).replace(' ', '0');
+        } else if (sourceBusinessUnitId == 30024) {
+            return "TEXCOCO";
+        } else {
+            return String.valueOf(sourceBusinessUnitId);
+        }
+    }
 
 }

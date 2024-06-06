@@ -27,7 +27,7 @@ public class JsonIn  implements Serializable {
     @JsonProperty("rfc")
     private String rfc;
     @JsonProperty("sourceBusinessUnitId")
-    private Long sourceBusinessUnitId;
+    private Integer sourceBusinessUnitId;
     @JsonProperty("vendorId")
     private String vendorId;
     @JsonProperty("vendorType")
@@ -105,11 +105,11 @@ public class JsonIn  implements Serializable {
         this.rfc = rfc;
     }
 
-    public Long getSourceBusinessUnitId() {
+    public Integer getSourceBusinessUnitId() {
         return sourceBusinessUnitId;
     }
 
-    public void setSourceBusinessUnitId(Long sourceBusinessUnitId) {
+    public void setSourceBusinessUnitId(Integer sourceBusinessUnitId) {
         this.sourceBusinessUnitId = sourceBusinessUnitId;
     }
 
