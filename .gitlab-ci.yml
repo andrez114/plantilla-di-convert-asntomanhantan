@@ -1,0 +1,23 @@
+## YAML Template.
+---
+stages:
+  - sonarQube
+
+sonar:
+  stage: sonarQube
+  image: harbor.coppel.io/library/sonar-scanner:3.2.0
+  tags:
+  - docker
+  script:
+    - sonar-scanner -Dsonar.projectKey=$CPL_PROJECT_KEY -Dsonar.projectName=$CI_PROJECT_NAME -Dsonar.projectVersion=$CPL_PROJECT_VERSION -Dsonar.host.url=$CPL_SONARQUBE_DEV -Dsonar.sourceEncoding=UTF-8 -Dsonar.sources=src/main -Dsonar.java.binaries=.
+
+  only:
+    refs:
+      - merge_requests
+    variables:
+      - $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "master"
+      - $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "development"
+      - $CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /\d{1,6}_\d{6}_(\w*Desarrollo\w*)/
+  except:
+    - branches
+
