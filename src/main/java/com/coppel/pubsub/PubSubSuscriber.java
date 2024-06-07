@@ -49,7 +49,7 @@ public class PubSubSuscriber {
     public PubSubSuscriber(GcpConfig gcpConfig, AppConfig appConfig, PublisherMessaje publisherMessaje) {
         this.gcpConfig = gcpConfig;
         this.appConfig = appConfig;
-        this.publisherMessaje = publisherMessaje; // Aquí se inicializa con el valor pasado como argumento al constructor
+        this.publisherMessaje = publisherMessaje;
         this.executorService = Executors.newScheduledThreadPool(5);
     }
 
@@ -61,11 +61,18 @@ public class PubSubSuscriber {
 
     public void subscribeAsync() {
         ProjectSubscriptionName subscriptionName = ProjectSubscriptionName.of(appConfig.getProjectIdOrigen(), appConfig.getSubIdOrigen());
+
         MessageReceiver receiver = (PubsubMessage message, AckReplyConsumer consumer) -> {
-            String payload = message.getData().toStringUtf8();
-            logger.info("Received message");
-            processElement(payload);
-            consumer.ack();
+            try {
+                String payload = message.getData().toStringUtf8();
+                logger.info("Received message");
+                JsonIn jsonIn = new JsonConverter().fromJson(payload, JsonIn.class);
+                processElement(jsonIn);
+                consumer.ack();
+            } catch (Exception e) {
+                logger.error(new LogCustom<>(e.getMessage(), Thread.currentThread().getStackTrace()[1].getMethodName(), message.getData().toStringUtf8(), null, null).toJson());
+                consumer.ack();
+            }
         };
 
         try {
@@ -83,9 +90,9 @@ public class PubSubSuscriber {
     }
 
 
-    public void processElement(String payload) {
+    public void processElement(JsonIn jsonIn) {
         try {
-            JsonIn jsonIn = new JsonConverter().fromJson(payload, JsonIn.class);
+
             DateFormat dateFormat = new SimpleDateFormat("y-MM-dd'T'hh:mm:ss.SSS");
             String messageId = null;
             Datum data = new Datum();
@@ -111,7 +118,7 @@ public class PubSubSuscriber {
             data.setLpn(new ArrayList<>());//jsonIn.getSourceBusinessUnitId()
             data.setOriginFacilityId("TEXCOCO");
 
-            data.setShippedDate(dateFormat.format(Calendar.getInstance().getTime()));// Añadir fecha actual
+            data.setShippedDate(dateFormat.format(Calendar.getInstance().getTime()));
             data.setShippedLpns(0.0);
             data.setVendorId(null);
 

@@ -31,7 +31,7 @@ public class PublisherMessaje {
             throws IOException, ExecutionException, InterruptedException {
         TopicName topicName = TopicName.of(projectId, topicId);
         Publisher publisher = null;
-        String messageId = null;
+        String messageId = "Mensaje no enviado";
         try {
             publisher = Publisher.newBuilder(topicName)
                     .setCredentialsProvider(FixedCredentialsProvider.create(gcpConfig.googleCredentialsDestination()))

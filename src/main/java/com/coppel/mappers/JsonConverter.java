@@ -15,7 +15,7 @@ public class JsonConverter {
         try {
             return objectMapper.readValue(json, clazz);
         } catch (JsonParseException e) {
-            throw new ServerException("JSON mal formateado, verifique el formato: " + e.getMessage(), e);
+            throw new ServerException("JSON mal formateado, verifique el formato: " + e.getOriginalMessage(), null);
         } catch (JsonMappingException e) {
             throw new ServerException("Error en el mapeo del JSON al objeto: " + e.getMessage(), e);
         } catch (IOException e) {

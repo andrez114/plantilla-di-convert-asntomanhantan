@@ -35,9 +35,9 @@ public class LogCustom<T> {
             rootNode.put("Status", status);
             rootNode.put("Date", date);
             rootNode.put("Method", metodo);
-            rootNode.put("Message", message);
+            Optional.ofNullable(message).ifPresent(m -> rootNode.put("Message", m));
             Optional.ofNullable(causa).ifPresent(c -> rootNode.put("Cause", c));
-            rootNode.set("Data", mapper.valueToTree(data));
+            if (data!=null) rootNode.set("Data", mapper.valueToTree(data));
 
             return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(rootNode);
         } catch (Exception e) {
