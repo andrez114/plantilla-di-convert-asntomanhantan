@@ -98,7 +98,7 @@ public class PubSubSuscriber {
             Datum data = new Datum();
             data.setAsnId(jsonIn.getAsnReference());
             data.setAsnLevelId("ITEM");
-            data.setAsnOriginTypeId("W");
+            data.setAsnOriginTypeId( (jsonIn.getAsnTypeCode() == 1 || jsonIn.getAsnTypeCode() == 2) ? "P" : (jsonIn.getAsnTypeCode() == 3 || jsonIn.getAsnTypeCode() == 4) ? "S" : (jsonIn.getAsnTypeCode() == 5) ? "W" : "InvalidType");
             data.setAsnStatus("1000");
             data.setCanceled(false);
             data.setDestinationFacilityId(
