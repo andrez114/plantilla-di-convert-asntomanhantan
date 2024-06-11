@@ -98,7 +98,7 @@ public class PubSubSuscriber {
             Datum data = new Datum();
             data.setAsnId(jsonIn.getAsnReference());
             data.setAsnLevelId("ITEM");
-            data.setAsnOriginTypeId( (jsonIn.getAsnTypeCode() == 1 || jsonIn.getAsnTypeCode() == 2) ? "P" : (jsonIn.getAsnTypeCode() == 3 || jsonIn.getAsnTypeCode() == 4) ? "S" : (jsonIn.getAsnTypeCode() == 5) ? "W" : "InvalidType");
+            data.setAsnOriginTypeId(catAsnTypeCode(jsonIn.getAsnTypeCode()));
             data.setAsnStatus("1000");
             data.setCanceled(false);
             data.setDestinationFacilityId(
@@ -176,6 +176,14 @@ public class PubSubSuscriber {
             executorService.shutdownNow();
             Thread.currentThread().interrupt();
         }
+    }
+
+    private String catAsnTypeCode(Integer asnTypeCode) {
+        return switch (asnTypeCode) {
+            case 1, 2 -> "P";
+            case 3, 4 -> "S";
+            default -> "W";
+        };
     }
 
     private String getSourceBusinessUnit(int sourceBusinessUnitId) {
