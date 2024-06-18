@@ -66,8 +66,10 @@ public class PubSubSuscriber {
             try {
                 String payload = message.getData().toStringUtf8();
                 logger.info("Received message");
-                JsonIn jsonIn = new JsonConverter().fromJson(payload, JsonIn.class);
-                processElement(jsonIn);
+                JsonIn[] jsonInArray = new JsonConverter().fromJson(payload, JsonIn[].class);
+                for (JsonIn jsonIn : jsonInArray) {
+                    processElement(jsonIn);
+                }
                 consumer.ack();
             } catch (Exception e) {
                 logger.error(new LogCustom<>(e.getMessage(), Thread.currentThread().getStackTrace()[1].getMethodName(), message.getData().toStringUtf8(), null, null).toJson());
