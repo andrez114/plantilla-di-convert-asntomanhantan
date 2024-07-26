@@ -18,6 +18,7 @@ public class LPNMapper {
 
     private static final boolean DEFAULT_IS_CANCELED = false;
     private static final String DEFAULT_NULL = null;
+    private static final String DEFAULT_MIL = "1000";
     private static final String DEFAULT_ILPN = "iLPN";
     @Setter(AccessLevel.NONE)
     private final LPNDetailMapper lpnDetailMapper;
@@ -36,8 +37,8 @@ public class LPNMapper {
                 .lpnDetail(lpnDetailMapper.mapAll(source.getDetails()))
                 .lpnId(source.getLpnId())
                 .lpnSizeTypeId(DEFAULT_NULL)
-                .lpnStatus(DEFAULT_NULL)
-                .lpnTypeId(DEFAULT_NULL)
+                .lpnStatus(DEFAULT_MIL)
+                .lpnTypeId(DEFAULT_ILPN)
                 .physicalEntityCodeId(DEFAULT_ILPN)
                 .purchaseOrderId(purchaseOrderId)
                 .vendorId(vendorId)
