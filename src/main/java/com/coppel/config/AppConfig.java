@@ -3,14 +3,18 @@ package com.coppel.config;
 import java.util.Locale;
 
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.info.BuildProperties;
+import org.springframework.context.annotation.Bean;
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.stereotype.Component;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.springframework.web.client.RestTemplate;
 
 /**
  * AppConfig
@@ -27,6 +31,14 @@ public class AppConfig {
 
     @Value("${server.servlet.context-path}")
     private String contextVersion;
+    @Value("${app.urlAuthServiceManhattan}")
+    private String urlAuthServiceManhattan;
+
+    @Value("${app.tokenAuthServiceManhattan}")
+    private String tokenAuthServiceManhattan;
+
+    @Value("${app.urlServicePurchaseOrderManhattan}")
+    private String urlServicePurchaseOrderManhattan;
 
     private String authUri;
     private boolean ignoreSession;
@@ -45,6 +57,15 @@ public class AppConfig {
     private String projectIdDes;
     private String topicIdDes;
     private String subIdDes;
+
+    @Bean
+    RestTemplate restTemplate() {
+        RestTemplate restTemplate = new RestTemplate();
+        MappingJackson2HttpMessageConverter converter = new MappingJackson2HttpMessageConverter();
+        converter.setObjectMapper(new ObjectMapper());
+        restTemplate.getMessageConverters().add(converter);
+        return restTemplate;
+    }
 
 
     public String compatibilityContextVersion() {

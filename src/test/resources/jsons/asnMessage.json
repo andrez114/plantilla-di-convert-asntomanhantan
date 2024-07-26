@@ -1,0 +1,56 @@
+{
+  "Data": [
+    {
+      "AsnId": "01AABB29-2582-11ED-A891-B58AD5D4B20F",
+      "AsnLevelId": "LPN",
+      "AsnOriginTypeId": "P",
+      "AsnStatus": "1000",
+      "Canceled": true,
+      "DestinationFacilityId": "TEXCOCO",
+      "Lpn": [
+        {
+          "AsnId": "01AABB29-2582-11ED-A891-B58AD5D4B20F",
+          "Canceled": false,
+          "LpnDetail": [
+            {
+              "AsnLineId": "LPNID300203302024111",
+              "BatchNumber": null,
+              "CountryOfOrigin": "MEXICO",
+              "Extended": {
+                "ComparisonPrice": "1"
+              },
+              "ExpiryDate": null,
+              "InventoryAttribute1": null,
+              "InventoryAttribute2": null,
+              "InventoryAttribute3": null,
+              "InventoryAttribute4": null,
+              "InventoryAttribute5": null,
+              "InventoryTypeId": "N",
+              "ItemId": "34542345",
+              "LpnDetailId": "1",
+              "LpnDetailStatus": "1000",
+              "ProductStatusId": "InStock",
+              "PurchaseOrderId": "1",
+              "PurchaseOrderLineId": "",
+              "QuantityUomId": "UNIT",
+              "RetailPrice": "1",
+              "ShippedQuantity": "1",
+              "VendorId": "PR69906"
+            }
+          ],
+          "LpnId": "2828678903",
+          "LpnSizeTypeId": null,
+          "LpnStatus": null,
+          "LpnTypeId": null,
+          "PhysicalEntityCodeId": null,
+          "PurchaseOrderId": "1",
+          "VendorId": "PR69906"
+        }
+      ],
+      "OriginFacilityId": "24",
+      "ShippedDate": "Tue Jul 23 13:11:21 GMT-06:00 2024",
+      "ShippedLpns": "2",
+      "VendorId": "PR69906"
+    }
+  ]
+}

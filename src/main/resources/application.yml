@@ -22,6 +22,11 @@ app:
   topicIdDes: COPP_INB_HST_XINT_ASN_GCPQ
   subIdDes: q
 
+  urlAuthServiceManhattan: https://copps-auth.sce.manh.com/oauth/token?grant_type=password&username=kolea@texcoco&password=0390-Kboo
+  tokenAuthServiceManhattan: b21uaWNvbXBvbmVudC4xLjAuMDpiNHM4cmdUeWc1NVhZTnVu
+  urlServicePurchaseOrderManhattan: https://copps.sce.manh.com/receiving/api/receiving/purchaseOrder/?query=PurchaseOrderId=
+
+
 spring:
   autoconfigure:
     exclude:

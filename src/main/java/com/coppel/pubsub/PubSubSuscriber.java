@@ -8,7 +8,9 @@ import com.coppel.dto.jsonin.Detail;
 import com.coppel.dto.jsonin.JsonIn;
 import com.coppel.dto.jsonin.Lpn;
 import com.coppel.dto.jsonout.*;
+import com.coppel.dto.purchaseOrder.PurchaseOrderLineDTO;
 import com.coppel.mappers.JsonConverter;
+import com.coppel.services.ASNTexcocoService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -44,13 +46,15 @@ public class PubSubSuscriber {
     private final ScheduledExecutorService executorService;
     private Subscriber subscriber;
     private PublisherMessaje publisherMessaje;
+    private final ASNTexcocoService asnTexcocoService;
 
 
-    public PubSubSuscriber(GcpConfig gcpConfig, AppConfig appConfig, PublisherMessaje publisherMessaje) {
+    public PubSubSuscriber(GcpConfig gcpConfig, AppConfig appConfig, PublisherMessaje publisherMessaje, ASNTexcocoService asnTexcocoService) {
         this.gcpConfig = gcpConfig;
         this.appConfig = appConfig;
         this.publisherMessaje = publisherMessaje;
         this.executorService = Executors.newScheduledThreadPool(5);
+        this.asnTexcocoService = asnTexcocoService;
     }
 
 
@@ -65,10 +69,20 @@ public class PubSubSuscriber {
         MessageReceiver receiver = (PubsubMessage message, AckReplyConsumer consumer) -> {
             try {
                 String payload = message.getData().toStringUtf8();
-                logger.info("Received message");
+
+                logger.info("Message received with id : " + message.getMessageId());
                 JsonIn[] jsonInArray = new JsonConverter().fromJson(payload, JsonIn[].class);
                 for (JsonIn jsonIn : jsonInArray) {
+
+                    jsonIn.setPurchaseOrderLineDTOList(
+                            asnTexcocoService.getPurchaseOrderFromManhattan(String.valueOf(jsonIn.getPurchaseOrderId())));
+
                     processElement(jsonIn);
+
+
+                    asnTexcocoService.processASNCanonicoRopa(jsonIn);
+                    
+                    asnTexcocoService.processASNCanonicoMuebles(jsonIn);
                 }
                 consumer.ack();
             } catch (Exception e) {
@@ -123,7 +137,6 @@ public class PubSubSuscriber {
             data.setShippedDate(dateFormat.format(Calendar.getInstance().getTime()));
             data.setShippedLpns(0.0);
             data.setVendorId(null);
-
             ArrayList<Datum> tmpData = new ArrayList<>();
             tmpData.add(data);
             String message = new JsonConverter().toJson(new JsonOut(tmpData));

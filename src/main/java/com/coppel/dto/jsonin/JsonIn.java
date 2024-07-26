@@ -2,6 +2,8 @@
 package com.coppel.dto.jsonin;
 
 import java.util.List;
+
+import com.coppel.dto.purchaseOrder.PurchaseOrderLineDTO;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.io.Serializable;
 
@@ -32,6 +34,17 @@ public class JsonIn  implements Serializable {
     private String vendorId;
     @JsonProperty("vendorType")
     private Long vendorType;
+
+    private List<PurchaseOrderLineDTO> purchaseOrderLineDTOList;
+
+    public List<PurchaseOrderLineDTO> getPurchaseOrderLineDTOList() {
+        return purchaseOrderLineDTOList;
+    }
+
+    public JsonIn setPurchaseOrderLineDTOList(List<PurchaseOrderLineDTO> purchaseOrderLineDTOList) {
+        this.purchaseOrderLineDTOList = purchaseOrderLineDTOList;
+        return this;
+    }
 
     public String getAsnReference() {
         return asnReference;
