@@ -30,4 +30,14 @@ public class JsonConverter {
             throw new ServerException("Error al convertir objeto a JSON", e);
         }
     }
+
+    public static String convertObjectToJson(Object object)
+    {
+        try {
+            return objectMapper.writeValueAsString(object);
+        } catch (JsonProcessingException e) {
+            throw new ServerException("Error al convertir objeto a JSON", e);
+        }
+
+    }
 }

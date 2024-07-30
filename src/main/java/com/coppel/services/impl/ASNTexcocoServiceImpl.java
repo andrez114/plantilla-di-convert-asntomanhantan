@@ -9,11 +9,13 @@ import com.coppel.dto.jsonin.JsonIn;
 import com.coppel.dto.purchaseOrder.PurchaseOrderDTO;
 import com.coppel.dto.purchaseOrder.PurchaseOrderLineDTO;
 import com.coppel.dto.token.AuthResponseDTO;
+import com.coppel.entities.AsnToManhattan;
 import com.coppel.mappers.ASNCanonicoMapper;
 import com.coppel.mappers.JsonConverter;
 import com.coppel.mappers.muebles.ASNCanonicoMueblesMapper;
 import com.coppel.pubsub.PublisherMessaje;
 import com.coppel.services.ASNTexcocoService;
+import com.coppel.services.AsnToManhattanService;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpEntity;
@@ -46,11 +48,24 @@ public class ASNTexcocoServiceImpl implements ASNTexcocoService {
     private PublisherMessaje publisherMessaje;
     private AppConfig appConfig;
     private RestTemplate restTemplate;
+    private AsnToManhattanService asnToManhattanService;
+
+
+
+    @Override
+    public void processOrignalOrderRopa(JsonIn originalOrderROpa) {
+
+    }
 
     @Override
     public void processASNCanonicoRopa(JsonIn asnCanonico) {
         if (isAsnRopaValidToPublish(asnCanonico)) {
             ASNMessage.ASNManhattan asnManhattan = asnCanonicoMapper.toASNManhattan(asnCanonico);
+            AsnToManhattan asnToManhattan = new AsnToManhattan();
+            asnToManhattan.setAsnId(asnManhattan.getAsnId());
+            String payload = JsonConverter.convertObjectToJson(asnManhattan);
+            asnToManhattan.setPayload(payload);
+            asnToManhattanService.insertAsnId(asnToManhattan);
             publishASNToManhattan(ASNMessage.builder().data(Collections.singletonList(asnManhattan)).build());
         }
     }
@@ -61,6 +76,11 @@ public class ASNTexcocoServiceImpl implements ASNTexcocoService {
             ASNManhattan data = asnCanonicoMueblesMapper.toASNManhattan(asnCanonico);
             ASNMessageMuebles asnMessageMuebles = new ASNMessageMuebles();
             asnMessageMuebles.setData(Collections.singletonList(data));
+            AsnToManhattan asnToManhattan = new AsnToManhattan();
+            asnToManhattan.setAsnId(data.getAsnId());
+            String payload = JsonConverter.convertObjectToJson(data);
+            asnToManhattan.setPayload(payload);
+            asnToManhattanService.insertAsnId(asnToManhattan);
             publishASNToManhattanMuebles(asnMessageMuebles);
         }
     }
@@ -115,14 +135,10 @@ public class ASNTexcocoServiceImpl implements ASNTexcocoService {
                 .flatMap(lpn -> lpn.getDetails().stream())
                 .allMatch(detail -> detail.getTypeDocumentAsnId().equals(REQUIRED_TYPE_DOCUMENT_ASN_ID));
 
-        boolean isTexcocoFacility = Objects.nonNull(asnCanonicoRequest.getSourceBusinessUnitId())
-                && Objects.nonNull(asnCanonicoRequest.getDestinationBusinessUnitId())
-                && asnCanonicoRequest.getSourceBusinessUnitId().equals(ASN_TEXCOCO)
-                && asnCanonicoRequest.getDestinationBusinessUnitId().equals(ASN_TEXCOCO);
+
 
         return isTypeDocumentAsnIdValid
-                && isAsnTypeCodeValid
-                && isTexcocoFacility;
+                && isAsnTypeCodeValid;
     }
 
     public boolean isAsnMueblesValidToPublish(JsonIn asnCanonicoRequest) {
@@ -134,13 +150,8 @@ public class ASNTexcocoServiceImpl implements ASNTexcocoService {
                 .flatMap(lpn -> lpn.getDetails().stream())
                 .allMatch(detail -> detail.getTypeDocumentAsnId().equals(REQUIRED_TYPE_DOCUMENT_ASN_ID_MUEBLES));
 
-        boolean isTexcocoFacility = Objects.nonNull(asnCanonicoRequest.getSourceBusinessUnitId())
-                && Objects.nonNull(asnCanonicoRequest.getDestinationBusinessUnitId())
-                && asnCanonicoRequest.getSourceBusinessUnitId().equals(ASN_TEXCOCO_MUEBLES)
-                && asnCanonicoRequest.getDestinationBusinessUnitId().equals(ASN_TEXCOCO_MUEBLES);
 
-        return isTypeDocumentAsnIdValid
-                && isTexcocoFacility;
+        return isTypeDocumentAsnIdValid;
     }
 
 
@@ -176,6 +187,8 @@ public class ASNTexcocoServiceImpl implements ASNTexcocoService {
 
         return purchaseOrderLineList;
     }
+
+
 
     private String getAccessToken() {
         HttpHeaders headers = new HttpHeaders();

@@ -8,9 +8,16 @@ import com.coppel.dto.jsonin.Detail;
 import com.coppel.dto.jsonin.JsonIn;
 import com.coppel.dto.jsonin.Lpn;
 import com.coppel.dto.jsonout.*;
-import com.coppel.dto.purchaseOrder.PurchaseOrderLineDTO;
+import com.coppel.dto.originalOrder.ItemDTO;
+import com.coppel.dto.originalOrder.OriginalOrderDTO;
+import com.coppel.entities.CatBodegas;
+import com.coppel.entities.OriginalOrder;
 import com.coppel.mappers.JsonConverter;
 import com.coppel.services.ASNTexcocoService;
+import com.coppel.services.clients.OriginalOrderClient;
+import com.coppel.services.impl.CatBodegasServiceImpl;
+import com.coppel.services.impl.OriginalOrderServiceImpl;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -37,6 +44,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+@Slf4j
 @Component
 public class PubSubSuscriber {
 
@@ -47,12 +55,18 @@ public class PubSubSuscriber {
     private Subscriber subscriber;
     private PublisherMessaje publisherMessaje;
     private final ASNTexcocoService asnTexcocoService;
+    private final OriginalOrderServiceImpl originalOrderService;
+    private final OriginalOrderClient originalOrderClient;
+    private final CatBodegasServiceImpl catBodegasService;
 
 
-    public PubSubSuscriber(GcpConfig gcpConfig, AppConfig appConfig, PublisherMessaje publisherMessaje, ASNTexcocoService asnTexcocoService) {
+    public PubSubSuscriber(GcpConfig gcpConfig, AppConfig appConfig, PublisherMessaje publisherMessaje, ASNTexcocoService asnTexcocoService, OriginalOrderServiceImpl originalOrderService, OriginalOrderClient originalOrderClient, CatBodegasServiceImpl catBodegasService) {
         this.gcpConfig = gcpConfig;
         this.appConfig = appConfig;
         this.publisherMessaje = publisherMessaje;
+        this.originalOrderService = originalOrderService;
+        this.originalOrderClient = originalOrderClient;
+        this.catBodegasService = catBodegasService;
         this.executorService = Executors.newScheduledThreadPool(5);
         this.asnTexcocoService = asnTexcocoService;
     }
@@ -69,7 +83,6 @@ public class PubSubSuscriber {
         MessageReceiver receiver = (PubsubMessage message, AckReplyConsumer consumer) -> {
             try {
                 String payload = message.getData().toStringUtf8();
-
                 logger.info("Message received with id : " + message.getMessageId());
                 JsonIn[] jsonInArray = new JsonConverter().fromJson(payload, JsonIn[].class);
                 for (JsonIn jsonIn : jsonInArray) {
@@ -80,9 +93,23 @@ public class PubSubSuscriber {
                     processElement(jsonIn);
 
 
-                    asnTexcocoService.processASNCanonicoRopa(jsonIn);
+                    if (jsonIn.getSourceBusinessUnitId().equals(28)){
+                        asnTexcocoService.processASNCanonicoRopa(jsonIn);
+                        if(isOriginalOrder(jsonIn)){
+                            //publicar en pubsub original order ropa
+                            log.info("Intenta publicar en pubsub original order ropa");
+                            publishOriginalOrderRopa(jsonIn);
+                        }
+                    }else {
+                        asnTexcocoService.processASNCanonicoMuebles(jsonIn);
+                        if(isOriginalOrder(jsonIn)){
+                            //publicar en pubsub original order muebles
+                            publishOriginalOrderMuebles(jsonIn);
+                        }
+                    }
+
                     
-                    asnTexcocoService.processASNCanonicoMuebles(jsonIn);
+
                 }
                 consumer.ack();
             } catch (Exception e) {
@@ -105,6 +132,141 @@ public class PubSubSuscriber {
         }
     }
 
+    public void publishOriginalOrderRopa(JsonIn jsonIn){
+        DateFormat dateFormat = new SimpleDateFormat("y-MM-dd'T'hh:mm:ss.SSS");
+        try{
+
+            OriginalOrderDTO originalOrderDTO  = new OriginalOrderDTO();
+            originalOrderDTO.setOriginalOrderId("CDR"+ jsonIn.getPurchaseOrderId()+jsonIn.getReferenceId()+jsonIn.getSourceBusinessUnitId()+jsonIn.getDestinationBusinessUnitId()+"R");
+            originalOrderDTO.setCreateDateTimestamp(dateFormat.format(Calendar.getInstance().getTime()));
+            originalOrderDTO.setMinimumStatus("0000");
+            originalOrderDTO.setMaximumStatus("0000");
+            originalOrderDTO.setOrderType("CrossDocking");
+            originalOrderDTO.setDestinationBusinessUnitId(getFuritureNumber(jsonIn.getDestinationBusinessUnitId()));
+            originalOrderDTO.setSourceBusinessUnitId(getFuritureNumber(jsonIn.getSourceBusinessUnitId()));
+            originalOrderDTO.setTypeCode(2);
+            originalOrderDTO.setAsnReference(jsonIn.getAsnReference());
+            List<ItemDTO> itemDTOList = new ArrayList<>();
+            Lpn lpn = jsonIn.getLpns().get(0);
+            Integer contador = 1;
+            for (Detail det : lpn.getDetails()) {
+
+                ItemDTO itemDTO = new ItemDTO();
+                itemDTO.setOriginalOrderId(originalOrderDTO.getOriginalOrderId());
+                itemDTO.setSku(det.getSku());
+                itemDTO.setLineItemDetail(contador++);
+                itemDTO.setStatus("0000");
+                itemDTO.setRefurbishedUnitId(0);
+                itemDTO.setUnitCount(det.getRetailUnitCount());
+                itemDTO.setQuantitySupplied(0);
+                itemDTO.setSingleLineOrder(false);
+                itemDTO.setSingleUnitOrder(false);
+                itemDTO.setSingleFragilOrder(false);
+                itemDTO.setMultiLineOrder(false);
+                itemDTO.setSourceBusinessUnitId(getFuritureNumber(jsonIn.getSourceBusinessUnitId()));
+                itemDTO.setEmployeeId(0);
+                itemDTO.setCenterNumber(0);
+                itemDTO.setCurrentSaleUnitRetailPriceAmount(det.getCurrentSaleUnitRetailPriceAmount());
+                itemDTO.setOrderFragmentId(null);
+                itemDTO.setOrderFragmentDescription(null);
+                itemDTO.setReferenceID("");
+                itemDTO.setBatchId("");
+                itemDTO.setOrderCvesort(0);
+                itemDTO.setOrderTdaFact("");
+                itemDTO.setSequenceNumber(0);
+                itemDTO.setOrderFact(null);
+                itemDTOList.add(itemDTO);
+                itemDTO = new ItemDTO();
+            }
+            originalOrderDTO.setUnitCount((int) lpn.getDetails().stream().count());
+            originalOrderDTO.setItems(itemDTOList);
+            OriginalOrder originalOrder = new OriginalOrder();
+            originalOrder.setOriginalOrderId(originalOrderDTO.getOriginalOrderId());
+            String payload = JsonConverter.convertObjectToJson(originalOrderDTO);
+            originalOrder.setPayload(payload);
+            originalOrderService.insertOriginalOrder(originalOrder);
+            log.info("persistion en tabla originalorderpreviousmanhattan ");
+            originalOrderClient.postOriginalORder(originalOrderDTO);
+
+
+
+
+        }catch (Exception e) {
+            logger.error("{}", e.getMessage(), e);
+            Thread.currentThread().interrupt();
+
+        }
+    }
+
+    private Integer getFuritureNumber(Integer clothingNumber){
+        Integer furitureNumber = 0;
+        CatBodegas catBodegas = catBodegasService.getFurnitureNumber(clothingNumber);
+        furitureNumber = catBodegas.getNumBodegaMuebles();
+        return  furitureNumber;
+    }
+
+    public void publishOriginalOrderMuebles(JsonIn jsonIn){
+        DateFormat dateFormat = new SimpleDateFormat("y-MM-dd'T'hh:mm:ss.SSS");
+        try{
+
+            OriginalOrderDTO originalOrderDTO  = new OriginalOrderDTO();
+            originalOrderDTO.setOriginalOrderId("CDM"+ dateFormat.format(Calendar.getInstance())+jsonIn.getDestinationBusinessUnitId()+jsonIn.getPurchaseOrderId()+"M");
+            originalOrderDTO.setCreateDateTimestamp(dateFormat.format(Calendar.getInstance().getTime()));
+            originalOrderDTO.setMinimumStatus("0000");
+            originalOrderDTO.setMaximumStatus("0000");
+            originalOrderDTO.setOrderType("CrossDocking");
+            originalOrderDTO.setDestinationBusinessUnitId(jsonIn.getDestinationBusinessUnitId());
+            originalOrderDTO.setSourceBusinessUnitId(jsonIn.getSourceBusinessUnitId());
+            originalOrderDTO.setTypeCode(2);
+            originalOrderDTO.setAsnReference(jsonIn.getAsnReference());
+            List<ItemDTO> itemDTOList = new ArrayList<>();
+            Lpn lpn = jsonIn.getLpns().get(0);
+            Integer contador = 0;
+            for (Detail det : lpn.getDetails()) {
+
+                ItemDTO itemDTO = new ItemDTO();
+                itemDTO.setOriginalOrderId(originalOrderDTO.getOriginalOrderId());
+                itemDTO.setSku(det.getSku());
+                itemDTO.setLineItemDetail(contador++);
+                itemDTO.setStatus("0000");
+                itemDTO.setRefurbishedUnitId(0);
+                itemDTO.setUnitCount(det.getRetailUnitCount());
+                itemDTO.setQuantitySupplied(0);
+                itemDTO.setSingleLineOrder(false);
+                itemDTO.setSingleUnitOrder(false);
+                itemDTO.setSingleFragilOrder(false);
+                itemDTO.setMultiLineOrder(false);
+                itemDTO.setSourceBusinessUnitId(jsonIn.getSourceBusinessUnitId());
+                itemDTO.setEmployeeId(0);
+                itemDTO.setCenterNumber(0);
+                itemDTO.setCurrentSaleUnitRetailPriceAmount(det.getCurrentSaleUnitRetailPriceAmount());
+                itemDTO.setOrderFragmentId(null);
+                itemDTO.setOrderFragmentDescription(null);
+                itemDTO.setReferenceID("");
+                itemDTO.setBatchId("");
+                itemDTO.setOrderCvesort(0);
+                itemDTO.setOrderTdaFact("");
+                itemDTO.setSequenceNumber(0);
+                itemDTO.setOrderFact(null);
+                itemDTOList.add(itemDTO);
+                itemDTO = new ItemDTO();
+            }
+            originalOrderDTO.setUnitCount(contador);
+            originalOrderDTO.setItems(itemDTOList);
+            OriginalOrder originalOrder = new OriginalOrder();
+            originalOrder.setOriginalOrderId(originalOrderDTO.getOriginalOrderId());
+            String payload = JsonConverter.convertObjectToJson(originalOrderDTO);
+            originalOrder.setPayload(payload);
+            originalOrderService.insertOriginalOrder(originalOrder);
+            originalOrderClient.postOriginalORder(originalOrderDTO);
+
+
+        }catch (Exception e) {
+            logger.error("{}", e.getMessage(), e);
+            Thread.currentThread().interrupt();
+
+        }
+    }
 
     public void processElement(JsonIn jsonIn) {
         try {
@@ -208,6 +370,14 @@ public class PubSubSuscriber {
             return "TEXCOCO";
         } else {
             return String.valueOf(sourceBusinessUnitId);
+        }
+    }
+
+    private boolean isOriginalOrder(JsonIn jsonIn){
+        if (jsonIn.getSourceBusinessUnitId() != jsonIn.getDestinationBusinessUnitId()){
+            return true;
+        }else {
+            return false;
         }
     }
 

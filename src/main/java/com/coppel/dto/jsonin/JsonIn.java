@@ -34,6 +34,16 @@ public class JsonIn  implements Serializable {
     private String vendorId;
     @JsonProperty("vendorType")
     private Long vendorType;
+    @JsonProperty("referenceId")
+    private String referenceId;
+
+    public String getReferenceId() {
+        return referenceId;
+    }
+
+    public void setReferenceId(String referenceId) {
+        this.referenceId = referenceId;
+    }
 
     private List<PurchaseOrderLineDTO> purchaseOrderLineDTOList;
 

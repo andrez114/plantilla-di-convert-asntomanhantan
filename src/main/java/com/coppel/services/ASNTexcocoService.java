@@ -18,4 +18,6 @@ public interface ASNTexcocoService {
 
     List<PurchaseOrderLineDTO> getPurchaseOrderFromManhattan(String purchaseOrder);
 
+    void processOrignalOrderRopa(JsonIn originalOrderROpa);
+
 }

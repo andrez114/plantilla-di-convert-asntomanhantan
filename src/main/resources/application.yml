@@ -1,7 +1,7 @@
 server:
   servlet:
     context-path: /dev/asntomanhattan
-  port: 8080
+  port: 8088
 
 app:
   authUri: https://app.coppel.cloud/api/sso/v1/verify
@@ -31,6 +31,57 @@ spring:
   autoconfigure:
     exclude:
       - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+  datasource:
+    jdbc-url: jdbc:postgresql://localhost:5432/asn?currentSchema=public&ApplicationName=wms-sys-asn&socketTimeout=30
+    driver-class-name: org.postgresql.Driver
+    username: postgres
+    password: hunter
+    test-on-borrow: true
+    test-while-idle: true
+    validation-query: SELECT 1;
+    time-between-eviction-runs-millis: 60000
+    remove-abandoned: true
+    remove-abandoned-timeout: 60
+    tomcat:
+      connection-properties: useUnicode=true;characterEncoding=utf-8;
+    hikari:
+      minimumIdle: 8
+      maximumPoolSize: 14
+      idleTimeout: 600000
+      poolName: SpringBootJPAHikariInventory
+      maxLifetime: 1800000
+      connectionTimeout: 30000
+      validationTimeout: 300000
+# Conexion a bodega
+bodega:
+  datasource:
+    jdbc-url: jdbc:postgresql://localhost:5432/bodega?currentSchema=public&ApplicationName=di-convert-asntomanhatan&socketTimeout=30
+    driver-class-name: org.postgresql.Driver
+    username: postgres
+    password: hunter
+    tomcat:
+      connection-properties: useUnicode=true;characterEncoding=utf-8;
+    hikari:
+      minimumIdle: 4
+      maximumPoolSize: 8
+      idleTimeout: 15000
+      poolName: SpringBootJPAHikariCP
+      maxLifetime: 1800000
+      connectionTimeout: 30000
+
+  sql:
+    init:
+      encoding: UTF-8
+
+  jpa:
+    database: POSTGRESQL
+    show-sql: true
+    properties:
+      hibernate:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: none
+      format_sql: true
 
 management:
   endpoint:
@@ -42,3 +93,9 @@ management:
     web:
       exposure:
         include: "*"
+ws:
+  wms:
+     wms-sys-original-order:
+      url: http://localhost:8080/dev/originalorder
+      paths:
+        root: /v1/completeorder
