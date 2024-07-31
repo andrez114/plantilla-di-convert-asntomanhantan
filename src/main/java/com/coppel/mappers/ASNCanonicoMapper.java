@@ -16,7 +16,7 @@ public class ASNCanonicoMapper {
     private static final String DEFAULT_ASN_LEVEL_ID = "LPN";
     private static final String DEFAULT_ORIGIN_TYPE_ID = "P";
     private static final String DEFAULT_ASN_STATUS = "1000";
-    private static final boolean DEFAULT_IS_CANCELED = true;
+    private static final boolean DEFAULT_IS_CANCELED = false;
     private static final String TEXCOCO_FACILITY_ID = "TEXCOCO";
     private static final DateTimeFormatter DATE_TIME_FORMATER = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS");
 

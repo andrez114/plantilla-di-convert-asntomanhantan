@@ -374,7 +374,7 @@ public class PubSubSuscriber {
     }
 
     private boolean isOriginalOrder(JsonIn jsonIn){
-        if (jsonIn.getSourceBusinessUnitId() != jsonIn.getDestinationBusinessUnitId()){
+        if (!jsonIn.getSourceBusinessUnitId().equals(jsonIn.getDestinationBusinessUnitId())){
             return true;
         }else {
             return false;
