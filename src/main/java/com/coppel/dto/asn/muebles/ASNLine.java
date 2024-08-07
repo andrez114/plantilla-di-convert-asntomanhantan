@@ -19,8 +19,8 @@ public class ASNLine {
 	@JsonProperty("Canceled")
 	private boolean canceled;
 
-	@JsonProperty("CountryOfOrigin")
-	private String countryOfOrigin;
+	@JsonProperty("CountryOfOrigen")
+	private String countryOfOrigen;
 
 	@JsonProperty("Extended")
 	private Extended extended;

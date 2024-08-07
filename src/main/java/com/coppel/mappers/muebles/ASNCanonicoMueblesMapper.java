@@ -77,7 +77,7 @@ public class ASNCanonicoMueblesMapper {
 			asnLine.setAsnLineId(Integer.toString(++lineidsize));
 			asnLine.setBatchNumber(DEFAULT_BATCH_NUMBER);
 			asnLine.setCanceled(DEFAULT_CANCELED);
-			asnLine.setCountryOfOrigin(DEFAULT_COUNTRY_ORIGEN);
+			asnLine.setCountryOfOrigen(DEFAULT_COUNTRY_ORIGEN);
 
 			asnLine.setExtended(getExtended(det));
 
