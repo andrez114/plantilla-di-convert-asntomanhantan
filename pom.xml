@@ -198,13 +198,6 @@
             <groupId>com.google.cloud</groupId>
             <artifactId>spring-cloud-gcp-starter-secretmanager</artifactId>
         </dependency>
-
-        <dependency>
-            <groupId>io.grpc</groupId>
-            <artifactId>grpc-netty-shaded</artifactId>
-            <version>1.65.1</version>
-        </dependency>
-
     </dependencies>
 
     <dependencyManagement>
