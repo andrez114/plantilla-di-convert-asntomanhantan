@@ -168,7 +168,7 @@ public class PubSubSuscriber {
                 itemDTO.setCenterNumber(0);
                 itemDTO.setCurrentSaleUnitRetailPriceAmount(det.getCurrentSaleUnitRetailPriceAmount());
                 itemDTO.setOrderFragmentId(null);
-                itemDTO.setOrderFragmentDescription(null);
+                itemDTO.setOrderFragmentDescription("");
                 itemDTO.setReferenceID("");
                 itemDTO.setBatchId("");
                 itemDTO.setOrderCvesort(0);
@@ -185,11 +185,8 @@ public class PubSubSuscriber {
             String payload = JsonConverter.convertObjectToJson(originalOrderDTO);
             originalOrder.setPayload(payload);
             originalOrderService.insertOriginalOrder(originalOrder);
-            log.info("persistion en tabla originalorderpreviousmanhattan ");
+            log.info("insert en tabla originalorderpreviousmanhattan ");
             originalOrderClient.postOriginalORder(originalOrderDTO);
-
-
-
 
         }catch (Exception e) {
             logger.error("{}", e.getMessage(), e);
@@ -221,7 +218,7 @@ public class PubSubSuscriber {
             originalOrderDTO.setAsnReference(jsonIn.getAsnReference());
             List<ItemDTO> itemDTOList = new ArrayList<>();
             Lpn lpn = jsonIn.getLpns().get(0);
-            Integer contador = 0;
+            Integer contador = 1;
             for (Detail det : lpn.getDetails()) {
 
                 ItemDTO itemDTO = new ItemDTO();
@@ -241,7 +238,7 @@ public class PubSubSuscriber {
                 itemDTO.setCenterNumber(0);
                 itemDTO.setCurrentSaleUnitRetailPriceAmount(det.getCurrentSaleUnitRetailPriceAmount());
                 itemDTO.setOrderFragmentId(null);
-                itemDTO.setOrderFragmentDescription(null);
+                itemDTO.setOrderFragmentDescription("");
                 itemDTO.setReferenceID("");
                 itemDTO.setBatchId("");
                 itemDTO.setOrderCvesort(0);
@@ -251,15 +248,15 @@ public class PubSubSuscriber {
                 itemDTOList.add(itemDTO);
                 itemDTO = new ItemDTO();
             }
-            originalOrderDTO.setUnitCount(contador);
+            originalOrderDTO.setUnitCount((int) lpn.getDetails().stream().count());
             originalOrderDTO.setItems(itemDTOList);
             OriginalOrder originalOrder = new OriginalOrder();
             originalOrder.setOriginalOrderId(originalOrderDTO.getOriginalOrderId());
             String payload = JsonConverter.convertObjectToJson(originalOrderDTO);
             originalOrder.setPayload(payload);
             originalOrderService.insertOriginalOrder(originalOrder);
+            log.info("insert en tabla originalorderpreviousmanhattan ");
             originalOrderClient.postOriginalORder(originalOrderDTO);
-
 
         }catch (Exception e) {
             logger.error("{}", e.getMessage(), e);
