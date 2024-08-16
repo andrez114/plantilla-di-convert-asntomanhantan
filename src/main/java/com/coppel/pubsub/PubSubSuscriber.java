@@ -4,6 +4,7 @@ import com.coppel.config.AppConfig;
 import com.coppel.config.GcpConfig;
 
 import com.coppel.dto.LogCustom;
+import com.coppel.dto.MerchandisingInfoDTO;
 import com.coppel.dto.jsonin.Detail;
 import com.coppel.dto.jsonin.JsonIn;
 import com.coppel.dto.jsonin.Lpn;
@@ -12,11 +13,17 @@ import com.coppel.dto.originalOrder.ItemDTO;
 import com.coppel.dto.originalOrder.OriginalOrderDTO;
 import com.coppel.entities.CatBodegas;
 import com.coppel.entities.OriginalOrder;
+import com.coppel.execeptions.AppNotFoundHandler;
+import com.coppel.execeptions.ErrorGeneralException;
 import com.coppel.mappers.JsonConverter;
 import com.coppel.services.ASNTexcocoService;
 import com.coppel.services.clients.OriginalOrderClient;
 import com.coppel.services.impl.CatBodegasServiceImpl;
 import com.coppel.services.impl.OriginalOrderServiceImpl;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,6 +38,8 @@ import com.google.pubsub.v1.PubsubMessage;
 import javax.annotation.PreDestroy;
 
 import org.springframework.context.event.EventListener;
+import org.springframework.http.HttpStatusCode;
+import org.springframework.http.ResponseEntity;
 import org.springframework.context.event.ContextRefreshedEvent;
 
 import java.io.IOException;
@@ -39,6 +48,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -58,6 +68,7 @@ public class PubSubSuscriber {
     private final OriginalOrderServiceImpl originalOrderService;
     private final OriginalOrderClient originalOrderClient;
     private final CatBodegasServiceImpl catBodegasService;
+    private static final String ITEM_NOT_FOUND = "No existe sku: %s en Manhattan";
 
 
     public PubSubSuscriber(GcpConfig gcpConfig, AppConfig appConfig, PublisherMessaje publisherMessaje, ASNTexcocoService asnTexcocoService, OriginalOrderServiceImpl originalOrderService, OriginalOrderClient originalOrderClient, CatBodegasServiceImpl catBodegasService) {
@@ -86,30 +97,30 @@ public class PubSubSuscriber {
                 logger.info("Message received with id : " + message.getMessageId());
                 JsonIn[] jsonInArray = new JsonConverter().fromJson(payload, JsonIn[].class);
                 for (JsonIn jsonIn : jsonInArray) {
-
                     jsonIn.setPurchaseOrderLineDTOList(
                             asnTexcocoService.getPurchaseOrderFromManhattan(String.valueOf(jsonIn.getPurchaseOrderId())));
-
-                    processElement(jsonIn);
-
-
-                    if (jsonIn.getSourceBusinessUnitId().equals(28)){
-                        asnTexcocoService.processASNCanonicoRopa(jsonIn);
-                        if(isOriginalOrder(jsonIn)){
-                            //publicar en pubsub original order ropa
-                            log.info("Intenta publicar en pubsub original order ropa");
-                            publishOriginalOrderRopa(jsonIn);
-                        }
-                    }else {
-                        asnTexcocoService.processASNCanonicoMuebles(jsonIn);
-                        if(isOriginalOrder(jsonIn)){
-                            //publicar en pubsub original order muebles
-                            publishOriginalOrderMuebles(jsonIn);
+                    
+                    
+                    if(jsonIn.getAsnReference().length() == 36)
+                    {
+                        if (jsonIn.getSourceBusinessUnitId().equals(28)){
+                            asnTexcocoService.processASNCanonicoRopa(jsonIn);
+                            if(isOriginalOrder(jsonIn)){
+                                //publicar en pubsub original order ropa
+                                log.info("Intenta publicar en pubsub original order ropa");
+                                publishOriginalOrderRopa(jsonIn);
+                            }
+                        }else {
+                            asnTexcocoService.processASNCanonicoMuebles(jsonIn);
+                            if(isOriginalOrder(jsonIn)){
+                                //publicar en pubsub original order muebles
+                                publishOriginalOrderMuebles(jsonIn);
+                            }
                         }
                     }
-
-                    
-
+                    else{
+                        processElement(jsonIn);
+                    }
                 }
                 consumer.ack();
             } catch (Exception e) {
@@ -268,50 +279,90 @@ public class PubSubSuscriber {
     public void processElement(JsonIn jsonIn) {
         try {
 
-            DateFormat dateFormat = new SimpleDateFormat("y-MM-dd'T'hh:mm:ss.SSS");
+            String asnOriginal = jsonIn.getAsnReference();
             String messageId = null;
-            Datum data = new Datum();
-            data.setAsnId(jsonIn.getAsnReference());
-            data.setAsnLevelId("ITEM");
-            data.setAsnOriginTypeId(catAsnTypeCode(jsonIn.getAsnTypeCode()));
-            data.setAsnStatus("1000");
-            data.setCanceled(false);
-            data.setDestinationFacilityId(
-                    jsonIn.getDestinationBusinessUnitId() < 30000 ?
-                            String.format("T%03d", jsonIn.getDestinationBusinessUnitId()).replace(' ', '0') :
-                            String.valueOf(jsonIn.getDestinationBusinessUnitId())
-            );
-            Lpn lpn = jsonIn.getLpns().get(0);
-            List<AsnLine> asnLines = new ArrayList<>();
-            int lineidsize = 0;
-            for (Detail det : lpn.getDetails()) {
-                AsnLine asnLine = getAsnLine(det, jsonIn, lpn);
-                asnLine.setAsnLineId(Integer.toString(++lineidsize));
-                asnLines.add(asnLine);
+            List<Lpn> lpns = jsonIn.getLpns();
+            List<String> skus = new ArrayList<>();
+            //Skus para buscar merchandasing
+            for(Lpn lpn: lpns ){
+                for (Detail det : lpn.getDetails()) {
+                    skus.add(det.getSku());
+                }
             }
-            data.setAsnLine(asnLines);
-            data.setLpn(new ArrayList<>());//jsonIn.getSourceBusinessUnitId()
-            data.setOriginFacilityId("TEXCOCO");
-
-            data.setShippedDate(dateFormat.format(Calendar.getInstance().getTime()));
-            data.setShippedLpns(0.0);
-            data.setVendorId(null);
+            
+            List<MerchandisingInfoDTO> skusMerchandisingInfo = asnTexcocoService.getMerchandisingInfo(skus);
+            //Agrega prefijo y preciounitario
+            List<Lpn> lpnsn = new ArrayList<>();
+            List<Detail> detallesGeneral = new ArrayList<>();
+            for(Lpn lpn: lpns){
+                List<Detail> detalles = new ArrayList<>(); 
+                for (Detail det : lpn.getDetails()) {
+                    String merchandiseGroupId = "";
+                    String prefijo = "";
+                    if(det.getSku().length() == 9)
+                    {
+                        prefijo = "BIR";
+                    }
+                    List<MerchandisingInfoDTO> filteredItems = skusMerchandisingInfo.stream()
+                   .filter(item -> item.getSku().equals(det.getSku()))
+                   .toList();
+                    if(!filteredItems.isEmpty() && filteredItems.get(0).getMerchandiseGroupId() != null)
+                    {
+                        merchandiseGroupId = filteredItems.get(0).getMerchandiseGroupId();
+                        //M1,M2,M3 BIM;
+                        if(merchandiseGroupId.equals("M1") || merchandiseGroupId.equals("M2") || merchandiseGroupId.equals("M3")){
+                            prefijo = "BIM";
+                         }
+                        if(merchandiseGroupId.equals("M4") || merchandiseGroupId.equals("M5") || merchandiseGroupId.equals("M6") || merchandiseGroupId.equals("M7")){
+                            prefijo = "BIT";
+                        }
+                        det.setCurrentSaleUnitRetailPriceAmount(filteredItems.get(0).getUnitCost().longValue());
+                    }
+                    else{
+                        throw new AppNotFoundHandler(String.format(ITEM_NOT_FOUND, det.getSku()));
+                    }
+                    det.setAsnReference(prefijo + det.getAsnReference());
+                    detalles.add(det);
+                    detallesGeneral.add(det);
+                }
+                lpn.setDetails(detalles);
+                lpnsn.add(lpn);
+            }
+            jsonIn.setLpns(lpnsn);
+            String tipos = "BIM,BIR,BIT";
+            String[] prefijos = tipos.split(",");
             ArrayList<Datum> tmpData = new ArrayList<>();
-            tmpData.add(data);
+            for(String prefijo: prefijos){
+                Datum data;
+                String asn = prefijo + asnOriginal; 
+                List<Detail> detalles = detallesGeneral.stream()
+                   .filter(item -> item.getAsnReference().equals(asn))
+                   .toList();
+                if(!detalles.isEmpty()){
+                    data = procesaJson(detalles,jsonIn,prefijo);
+                    if (data != null && data.getDestinationFacilityId().equals("30024")) {
+                        tmpData.add(data);
+                    }
+                }
+            }
             String message = new JsonConverter().toJson(new JsonOut(tmpData));
-
             if (publisherMessaje != null) {
-                if (data.getDestinationFacilityId().equals("30024")) {
+                if(tmpData.get(0).getDestinationFacilityId().equals("30024")){
                     messageId = publisherMessaje.publishWithCustomAttributes(appConfig.getProjectIdDes(), appConfig.getTopicIdDes(), message);
                 }
             } else {
                 logger.warn("Publisher Message is not initialized, unable to publish message: {}", message);
             }
+            asnTexcocoService.insertManhattanAsn(message, jsonIn.getAsnReference());
             logger.info(new LogCustom<>("200", Thread.currentThread().getStackTrace()[1].getMethodName(), messageId, null, message).toJson());
         } catch (InterruptedException | IOException | ExecutionException e) {
             logger.error("{}", e.getMessage(), e);
             Thread.currentThread().interrupt();
-
+        } catch (ErrorGeneralException e) {
+            logger.error("{}", e.getMessage());
+        } catch (AppNotFoundHandler e) {
+            logger.error("{}",e.getMessage());
+            asnTexcocoService.insertLog(jsonIn.getAsnReference(),e);
         }
     }
 
@@ -378,4 +429,102 @@ public class PubSubSuscriber {
         }
     }
 
+    private Datum procesaJson(List<Detail> details, JsonIn jsonIn,String prefijo){
+        DateFormat dateFormat = new SimpleDateFormat("y-MM-dd'T'hh:mm:ss.SSS");
+
+        Datum data = new Datum();
+        data.setAsnId(prefijo + jsonIn.getAsnReference());
+        data.setAsnLevelId((Objects.equals(prefijo, "BIT")) ? "ITEM" : "LPN");
+        data.setAsnOriginTypeId("W");
+        data.setAsnStatus("1000");
+        data.setCanceled(false);
+        data.setDestinationFacilityId(
+                    jsonIn.getDestinationBusinessUnitId() < 30000 ?
+                            String.format("T%03d", jsonIn.getDestinationBusinessUnitId()).replace(' ', '0') :
+                            String.valueOf(jsonIn.getDestinationBusinessUnitId())
+            );
+        if(prefijo.equals("BIT"))
+        {
+            //genera Asline
+            data.setLpn(new ArrayList<>());
+            List<AsnLine> asnLines = generaAsnLine(details); 
+            data.setAsnLine(asnLines); 
+        }
+        else
+        {
+            //genera Olpn BIR y BIM
+            data.setAsnLine(new ArrayList<>());
+            List<LpnOut> lpns =  generaOlpn(details, jsonIn,prefijo);
+            data.setLpn(lpns);
+        }
+        data.setOriginFacilityId("TEXCOCO");
+        data.setShippedDate(dateFormat.format(Calendar.getInstance().getTime()));
+        data.setShippedLpns(0.0);
+        data.setVendorId(null);
+        return data;
+    }
+    private List<AsnLine> generaAsnLine(List<Detail> detalles) {
+        List<AsnLine> asnLines = new ArrayList<>();
+        int lineidsize = 0;
+        //Crea olpn
+        for (Detail det :detalles) {
+            AsnLine asnLine = new AsnLine();
+            asnLine.setAsn(new Asn(det.getAsnReference()));
+            //asnLine.setAsnLineId(Integer.toString(jsonIn.getLpns().get(0).getDetails().size()));//"1" o suma los item a nivel lpn
+            asnLine.setBatchNumber(null);
+            asnLine.setCanceled(false);
+            asnLine.setExtended(new Extended("1"));
+            asnLine.setExpiryDate(null);
+            asnLine.setInventoryAttribute1(null);
+            asnLine.setInventoryAttribute2(null);
+            asnLine.setInventoryTypeId("N");
+            asnLine.setItemId(det.getSku());
+            asnLine.setProductStatusId("InStock");
+            asnLine.setQuantityUomId("UNIT");
+            asnLine.setRetailPrice(det.getCurrentSaleUnitRetailPriceAmount().doubleValue());
+            asnLine.setShippedQuantity(det.getRetailUnitCount().doubleValue());
+            asnLine.setCountryOfOrigin("MEXICO");
+            asnLine.setAsnLineId(Integer.toString(++lineidsize));
+            asnLines.add(asnLine);
+        }
+        return asnLines;
+    }
+
+    private List<LpnOut> generaOlpn(List<Detail> detalles, JsonIn jsonIn,String prefijo) {
+        List<LpnOut> lpnOut = new ArrayList<>();
+        List<Lpn> lpns = jsonIn.getLpns(); 
+        for(Lpn lpn: lpns ){
+            //Crea olpn
+            List<Detail> detallesn = detalles.stream()
+                   .filter(item -> item.getLpnId().equals(lpn.getLpnId()))
+                   .toList();
+            if(!detallesn.isEmpty()){
+                //crea olpn
+                LpnOut lpnOutNuevo = new LpnOut();
+                lpnOutNuevo.setLpnId(lpn.getLpnId());
+                
+                lpnOutNuevo.setLpnSizeTypeId((Objects.equals(prefijo,"BIM")) ? "Jaba Azul Chica": "Carton");
+                List<LpnDetail> lpnDetails =  new ArrayList<>();
+                int lineidsize = 0;
+                for (Detail det :detallesn) {
+                    LpnDetail lpnDetail = new LpnDetail();
+                    lpnDetail.setLpnDetailId(Integer.toString(++lineidsize));
+                    lpnDetail.setItemId(det.getSku());
+                    lpnDetail.setExtended(new Extended("1"));
+                    lpnDetail.setBatchNumber(null);
+                    lpnDetail.setQuantityUomId("UNIT");                    
+                    lpnDetail.setRetailPrice(det.getCurrentSaleUnitRetailPriceAmount().doubleValue());
+                    lpnDetail.setShippedQuantity(det.getRetailUnitCount().doubleValue());
+                    lpnDetail.setInventoryAttribute2(null);
+                    lpnDetail.setInventoryTypeId("N");
+                    lpnDetail.setExpiryDate(null);
+                    lpnDetails.add(lpnDetail);
+                }
+                lpnOutNuevo.setPhysicalEntityCodeId("iLPN");
+                lpnOutNuevo.setDetails(lpnDetails);
+                lpnOut.add(lpnOutNuevo);
+            }
+        }
+        return lpnOut;
+    }
 }

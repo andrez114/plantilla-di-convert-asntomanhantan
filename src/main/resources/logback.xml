@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
-    <property name="log-path" value="/Users/danielvalenzuela/Documents/logs"/>
+    <property name="log-path" value="/Users/zenon.hernandez/Documents/logs"/>
     <property name="filename" value="ejemplo-spring-boot"/>
 
     <appender name="Console" class="ch.qos.logback.core.ConsoleAppender">

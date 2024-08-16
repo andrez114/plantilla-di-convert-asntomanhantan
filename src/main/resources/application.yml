@@ -25,6 +25,7 @@ app:
   urlAuthServiceManhattan: https://copps-auth.sce.manh.com/oauth/token?grant_type=password&username=kolea@texcoco&password=0390-Kboo
   tokenAuthServiceManhattan: b21uaWNvbXBvbmVudC4xLjAuMDpiNHM4cmdUeWc1NVhZTnVu
   urlServicePurchaseOrderManhattan: https://copps.sce.manh.com/receiving/api/receiving/purchaseOrder/?query=PurchaseOrderId=
+  urlMerchandising: https://copps.sce.manh.com/item-master/api/item-master/item/search
 
 
 spring:
@@ -32,10 +33,10 @@ spring:
     exclude:
       - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
   datasource:
-    jdbc-url: jdbc:postgresql://localhost:5432/asn?currentSchema=public&ApplicationName=wms-sys-asn&socketTimeout=30
+    jdbc-url: jdbc:postgresql://localhost:5433/asn?currentSchema=public&ApplicationName=wms-sys-asn&socketTimeout=30
     driver-class-name: org.postgresql.Driver
-    username: postgres
-    password: hunter
+    username: syswmsasn
+    password: "##PLMnjii98!$"
     test-on-borrow: true
     test-while-idle: true
     validation-query: SELECT 1;
@@ -55,10 +56,10 @@ spring:
 # Conexion a bodega
 bodega:
   datasource:
-    jdbc-url: jdbc:postgresql://localhost:5432/bodega?currentSchema=public&ApplicationName=di-convert-asntomanhatan&socketTimeout=30
+    jdbc-url: jdbc:postgresql://localhost:5433/bodega?currentSchema=public&ApplicationName=di-convert-asntomanhatan&socketTimeout=30
     driver-class-name: org.postgresql.Driver
-    username: postgres
-    password: hunter
+    username: syswmsasn
+    password: "##PLMnjii98!$"
     tomcat:
       connection-properties: useUnicode=true;characterEncoding=utf-8;
     hikari:

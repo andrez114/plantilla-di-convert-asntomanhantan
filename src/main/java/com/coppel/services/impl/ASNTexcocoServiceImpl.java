@@ -1,7 +1,9 @@
 package com.coppel.services.impl;
 
 import com.coppel.config.AppConfig;
+import com.coppel.dto.LogAsnManhattanDTO;
 import com.coppel.dto.LogCustom;
+import com.coppel.dto.MerchandisingInfoDTO;
 import com.coppel.dto.asn.muebles.ASNManhattan;
 import com.coppel.dto.asn.muebles.ASNMessageMuebles;
 import com.coppel.dto.asn.ropa.ASNMessage;
@@ -10,22 +12,37 @@ import com.coppel.dto.purchaseOrder.PurchaseOrderDTO;
 import com.coppel.dto.purchaseOrder.PurchaseOrderLineDTO;
 import com.coppel.dto.token.AuthResponseDTO;
 import com.coppel.entities.AsnToManhattan;
+import com.coppel.entities.LogAsnManhattan;
+import com.coppel.entities.ManhattanAsn;
 import com.coppel.mappers.ASNCanonicoMapper;
 import com.coppel.mappers.JsonConverter;
 import com.coppel.mappers.muebles.ASNCanonicoMueblesMapper;
 import com.coppel.pubsub.PublisherMessaje;
+import com.coppel.repository.asn.LogAsnManhattanRepository;
+import com.coppel.repository.asn.ManhattanAsnRepository;
 import com.coppel.services.ASNTexcocoService;
 import com.coppel.services.AsnToManhattanService;
+import com.coppel.execeptions.ErrorGeneralException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import java.io.IOException;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -49,6 +66,11 @@ public class ASNTexcocoServiceImpl implements ASNTexcocoService {
     private AppConfig appConfig;
     private RestTemplate restTemplate;
     private AsnToManhattanService asnToManhattanService;
+
+    @Autowired 
+    private LogAsnManhattanRepository logAsnManhattanRepository;
+    @Autowired 
+    private ManhattanAsnRepository manhattanAsnRepository;
 
 
 
@@ -81,6 +103,7 @@ public class ASNTexcocoServiceImpl implements ASNTexcocoService {
             String payload = JsonConverter.convertObjectToJson(data);
             asnToManhattan.setPayload(payload);
             asnToManhattanService.insertAsnId(asnToManhattan);
+            System.out.println(asnMessageMuebles);
             publishASNToManhattanMuebles(asnMessageMuebles);
         }
     }
@@ -204,5 +227,75 @@ public class ASNTexcocoServiceImpl implements ASNTexcocoService {
         }
 
         return authResponseDTO.getAccessToken();
+    }
+
+    @Override
+    public List<MerchandisingInfoDTO> getMerchandisingInfo(List<String> skus) throws ErrorGeneralException {
+
+        try {
+            String url = appConfig.getUrlMerchandising();
+
+            HttpHeaders head = new HttpHeaders();
+            head.setContentType(MediaType.APPLICATION_JSON);
+            head.set("Authorization", "Bearer " + getAccessToken());
+
+            String skuString = String.join(",", skus);
+            String body = String.format(""" 
+                    {
+                        "Query": "ItemId in(%s)",
+                        "Template": {
+                            "ItemId": null,
+                            "MerchandizingGroup":null,
+                            "MerchandizingType":null,
+                            "UnitCost": null
+                        },
+                        "Size": 10000
+                    }
+            """,skuString);
+
+            HttpEntity<String> request = new HttpEntity<>(body, head);
+            ResponseEntity<String> responseEntityStr = restTemplate.postForEntity(url, request, String.class);
+
+            HttpStatusCode statusCode = responseEntityStr.getStatusCode();
+            if (statusCode == HttpStatus.OK) {
+                String itemsArray = responseEntityStr.getBody();
+                if (itemsArray != null) {
+                    ObjectMapper objectMapper = new ObjectMapper();
+                    JsonNode rootNode = objectMapper.readTree(itemsArray);
+                    JsonNode dataNode = rootNode.path("data");
+                    List<MerchandisingInfoDTO> merchandisingInfoList = new ArrayList<>();
+
+                    if (dataNode.isArray()) {
+                        for (JsonNode node : (ArrayNode) dataNode) {
+                            MerchandisingInfoDTO merchandisingInfo = objectMapper.treeToValue(node, MerchandisingInfoDTO.class);
+                            merchandisingInfoList.add(merchandisingInfo);
+                        }
+                    }
+                    return merchandisingInfoList;
+                } else {
+                    throw new ErrorGeneralException("La respuesta del API no contiene datos válidos");
+                }
+            } else {
+                throw new ErrorGeneralException("La solicitud al API no fue exitosa: " + statusCode);
+            }
+        } catch (Exception ex) {
+            throw new ErrorGeneralException(String.format("Error general al enviar la solicitud: %s",ex.getMessage()));
+        }
+    }
+
+    public void insertLog(String payload, Exception error){
+        LogAsnManhattan lAsnManhattan = new LogAsnManhattan();
+        lAsnManhattan.setDesPayload(payload);
+        lAsnManhattan.setDesMotivo(error.getMessage());
+        lAsnManhattan.setDesType("ASN");
+        lAsnManhattan.setFecRegistro(new Timestamp(System.currentTimeMillis()));
+        logAsnManhattanRepository.save(lAsnManhattan);
+    }
+    public void insertManhattanAsn(String payload,String asnRefence){
+        ManhattanAsn manhattanAsn = new ManhattanAsn();
+        manhattanAsn.setDesPayload(payload);
+        manhattanAsn.setFecRegistro(new Timestamp(System.currentTimeMillis()));
+        manhattanAsn.setAsnReference(asnRefence);
+        manhattanAsnRepository.save(manhattanAsn);
     }
 }

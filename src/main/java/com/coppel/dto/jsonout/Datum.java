@@ -22,7 +22,14 @@ public class Datum {
     @JsonProperty("DestinationFacilityId")
     private String destinationFacilityId;
     @JsonProperty("Lpn")
-    private List<Object> lpn;
+    private List<LpnOut> lpn;
+    public List<LpnOut> getLpn() {
+        return lpn;
+    }
+    public void setLpn(List<LpnOut> lpn) {
+        this.lpn = lpn;
+    }
+
     @JsonProperty("OriginFacilityId")
     private String originFacilityId;
     @JsonProperty("ShippedDate")
@@ -87,15 +94,7 @@ public class Datum {
     public void setDestinationFacilityId(String destinationFacilityId) {
         this.destinationFacilityId = destinationFacilityId;
     }
-
-    public List<Object> getLpn() {
-        return lpn;
-    }
-
-    public void setLpn(List<Object> lpn) {
-        this.lpn = lpn;
-    }
-
+    
     public String getOriginFacilityId() {
         return originFacilityId;
     }

@@ -41,7 +41,7 @@ public class ASNTexcocoServiceTest {
     @BeforeEach
     void setUp() {
         objectMapper = new ObjectMapper();
-        asnTexcocoService = new ASNTexcocoServiceImpl(asnCanonicoMapper,asnCanonicoMueblesMapper, publisherMessaje, appConfig,restTemplate);
+        //asnTexcocoService = new ASNTexcocoServiceImpl(asnCanonicoMapper,asnCanonicoMueblesMapper, publisherMessaje, appConfig,restTemplate);
         MockitoAnnotations.openMocks(this);
     }
 
@@ -54,7 +54,7 @@ public class ASNTexcocoServiceTest {
 
     @Test
     void processASNCanonicoRopa_publisherMessageNull() throws IOException, ExecutionException, InterruptedException {
-        asnTexcocoService = new ASNTexcocoServiceImpl(asnCanonicoMapper, asnCanonicoMueblesMapper,null, appConfig,restTemplate);
+        //asnTexcocoService = new ASNTexcocoServiceImpl(asnCanonicoMapper, asnCanonicoMueblesMapper,null, appConfig,restTemplate);
         asnTexcocoService.processASNCanonicoRopa(objectMapper.readValue(new File("src/test/resources/jsons/jsonIn.json"), JsonIn.class));
         verify(publisherMessaje, times(0)).publishWithCustomAttributes(any(), any(), any());
     }

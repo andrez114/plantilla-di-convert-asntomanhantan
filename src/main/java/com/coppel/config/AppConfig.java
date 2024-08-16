@@ -40,6 +40,9 @@ public class AppConfig {
     @Value("${app.urlServicePurchaseOrderManhattan}")
     private String urlServicePurchaseOrderManhattan;
 
+    @Value("${app.urlMerchandising}")
+    private String urlMerchandising;
+
     private String authUri;
     private boolean ignoreSession;
     private String allowedOrigins;
