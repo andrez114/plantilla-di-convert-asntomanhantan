@@ -1,20 +1,13 @@
 package com.coppel.config;
-
-import java.util.Locale;
-
-
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.info.BuildProperties;
-import org.springframework.context.annotation.Bean;
-import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+
 import org.springframework.stereotype.Component;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.springframework.web.client.RestTemplate;
 
 /**
  * AppConfig
@@ -40,7 +33,6 @@ public class AppConfig {
     @Value("${app.urlServicePurchaseOrderManhattan}")
     private String urlServicePurchaseOrderManhattan;
 
-    @Value("${app.urlMerchandising}")
     private String urlMerchandising;
 
     private String authUri;
@@ -61,27 +53,11 @@ public class AppConfig {
     private String topicIdDes;
     private String subIdDes;
 
-    @Bean
-    RestTemplate restTemplate() {
-        RestTemplate restTemplate = new RestTemplate();
-        MappingJackson2HttpMessageConverter converter = new MappingJackson2HttpMessageConverter();
-        converter.setObjectMapper(new ObjectMapper());
-        restTemplate.getMessageConverters().add(converter);
-        return restTemplate;
-    }
+    private String apiProxy;
+    private Integer apiPort;
 
-
-    public String compatibilityContextVersion() {
-        int position = this.contextVersion.toLowerCase(Locale.ROOT).indexOf("/v", 0) + 2;
-        String semanticContextVersion = this.contextVersion.substring(position);
-        String majorVersionContext = semanticContextVersion.split("[.]")[0];
-        String majorVersion = this.buildProperties.getVersion() == null
-                ? majorVersionContext : this.buildProperties.getVersion().split("[.]")[0];
-
-        if (majorVersionContext.equals(majorVersion)) {
-            return this.buildProperties.getVersion();
-        } else {
-            return String.format("Major project version in pom.xml (%s), differs from major context version (%s)", majorVersion, semanticContextVersion);
-        }
-    }
+    private String maxAttempts;
+    private String retryTimeInterval;
+    private String readTimeout;
+    private String connectTimeout;   
 }

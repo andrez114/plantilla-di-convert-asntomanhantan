@@ -1,7 +1,6 @@
 package com.coppel.services.impl;
 
 import com.coppel.config.AppConfig;
-import com.coppel.dto.LogAsnManhattanDTO;
 import com.coppel.dto.LogCustom;
 import com.coppel.dto.MerchandisingInfoDTO;
 import com.coppel.dto.asn.muebles.ASNManhattan;
@@ -63,15 +62,16 @@ public class ASNTexcocoServiceImpl implements ASNTexcocoService {
     private ASNCanonicoMapper asnCanonicoMapper;
     private ASNCanonicoMueblesMapper asnCanonicoMueblesMapper;
     private PublisherMessaje publisherMessaje;
-    private AppConfig appConfig;
-    private RestTemplate restTemplate;
     private AsnToManhattanService asnToManhattanService;
 
     @Autowired 
     private LogAsnManhattanRepository logAsnManhattanRepository;
     @Autowired 
     private ManhattanAsnRepository manhattanAsnRepository;
-
+    @Autowired
+    private RestTemplate restTemplate;
+    @Autowired 
+    private AppConfig appConfig;
 
 
     @Override
@@ -103,7 +103,6 @@ public class ASNTexcocoServiceImpl implements ASNTexcocoService {
             String payload = JsonConverter.convertObjectToJson(data);
             asnToManhattan.setPayload(payload);
             asnToManhattanService.insertAsnId(asnToManhattan);
-            System.out.println(asnMessageMuebles);
             publishASNToManhattanMuebles(asnMessageMuebles);
         }
     }

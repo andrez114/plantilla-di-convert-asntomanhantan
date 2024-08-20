@@ -1,6 +1,5 @@
 package com.coppel.services;
 
-import com.coppel.dto.LogAsnManhattanDTO;
 import com.coppel.dto.MerchandisingInfoDTO;
 import com.coppel.dto.asn.muebles.ASNMessageMuebles;
 import com.coppel.dto.asn.ropa.ASNMessage;
