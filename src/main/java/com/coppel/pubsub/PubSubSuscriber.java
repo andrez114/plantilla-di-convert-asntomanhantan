@@ -347,13 +347,13 @@ public class PubSubSuscriber {
             }
             String message = new JsonConverter().toJson(new JsonOut(tmpData));
             if (publisherMessaje != null) {
-                if(tmpData.get(0).getDestinationFacilityId().equals("30024")){
+                if(!tmpData.isEmpty()){
                     messageId = publisherMessaje.publishWithCustomAttributes(appConfig.getProjectIdDes(), appConfig.getTopicIdDes(), message);
+                    asnTexcocoService.insertManhattanAsn(message, jsonIn.getAsnReference());
                 }
             } else {
                 logger.warn("Publisher Message is not initialized, unable to publish message: {}", message);
             }
-            asnTexcocoService.insertManhattanAsn(message, jsonIn.getAsnReference());
             logger.info(new LogCustom<>("200", Thread.currentThread().getStackTrace()[1].getMethodName(), messageId, null, message).toJson());
         } catch (InterruptedException | IOException | ExecutionException e) {
             logger.error("{}", e.getMessage(), e);
