@@ -110,7 +110,7 @@ public class PubSubSuscriber {
                                 log.info("Intenta publicar en pubsub original order ropa");
                                 publishOriginalOrderRopa(jsonIn);
                             }
-                        }else {
+                        }else if (jsonIn.getSourceBusinessUnitId().equals(30024)){
                             asnTexcocoService.processASNCanonicoMuebles(jsonIn);
                             if(isOriginalOrder(jsonIn)){
                                 //publicar en pubsub original order muebles
