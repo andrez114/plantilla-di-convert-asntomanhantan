@@ -437,6 +437,7 @@ public class PubSubSuscriber {
         DateFormat dateFormat = new SimpleDateFormat("y-MM-dd'T'hh:mm:ss.SSS");
 
         Datum data = new Datum();
+        double countOlpn = 0.0;
         data.setAsnId( tienePrefijo ?
                 jsonIn.getAsnReference().replace("MTA","AREA") :
                 prefijo + jsonIn.getAsnReference());
@@ -451,7 +452,7 @@ public class PubSubSuscriber {
         data.setCanceled(false);
         data.setDestinationFacilityId(
                     jsonIn.getDestinationBusinessUnitId() < 30000 ?
-                            String.format("T%03d", jsonIn.getDestinationBusinessUnitId()).replace(' ', '0') :
+                            String.format("T%04d", jsonIn.getDestinationBusinessUnitId()).replace(' ', '0') :
                             String.valueOf(jsonIn.getDestinationBusinessUnitId())
             );
         if(Streams.of("BIT","MRB","CT","AREA").anyMatch(pref->pref.equals(prefijo)))
@@ -466,6 +467,7 @@ public class PubSubSuscriber {
             //genera Olpn BIR y BIM
             data.setAsnLine(new ArrayList<>());
             List<LpnOut> lpns =  generaOlpn(details, jsonIn,prefijo);
+            countOlpn = lpns.size();
             data.setLpn(lpns);
         }
         if (prefijo.equals("BIR"))
@@ -476,7 +478,7 @@ public class PubSubSuscriber {
             data.setOriginFacilityId("TEXCOCO");
         }
         data.setShippedDate(dateFormat.format(Calendar.getInstance().getTime()));
-        data.setShippedLpns(0.0);
+        data.setShippedLpns(countOlpn);
         data.setVendorId(null);
         return data;
     }
