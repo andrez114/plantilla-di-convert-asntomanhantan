@@ -20,11 +20,10 @@ import com.coppel.services.ASNTexcocoService;
 import com.coppel.services.clients.OriginalOrderClient;
 import com.coppel.services.impl.CatBodegasServiceImpl;
 import com.coppel.services.impl.OriginalOrderServiceImpl;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
 
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.stream.Streams;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -38,17 +37,12 @@ import com.google.pubsub.v1.PubsubMessage;
 import javax.annotation.PreDestroy;
 
 import org.springframework.context.event.EventListener;
-import org.springframework.http.HttpStatusCode;
-import org.springframework.http.ResponseEntity;
 import org.springframework.context.event.ContextRefreshedEvent;
 
 import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -278,7 +272,7 @@ public class PubSubSuscriber {
 
     public void processElement(JsonIn jsonIn) {
         try {
-
+            boolean tienePrefijo;
             String asnOriginal = jsonIn.getAsnReference();
             String messageId = null;
             List<Lpn> lpns = jsonIn.getLpns();
@@ -289,6 +283,11 @@ public class PubSubSuscriber {
                     skus.add(det.getSku());
                 }
             }
+
+            String[] prefijosASN = {"BIM","BIR","BIT","HAB","MRB","CT","MTA","AREA"};
+            String prefijo = Arrays.stream(prefijosASN).filter(asnOriginal::startsWith)
+                    .findFirst().orElse(null);
+            tienePrefijo = StringUtils.isNoneBlank(prefijo);
             
             List<MerchandisingInfoDTO> skusMerchandisingInfo = asnTexcocoService.getMerchandisingInfo(skus);
             //Agrega prefijo y preciounitario
@@ -298,8 +297,7 @@ public class PubSubSuscriber {
                 List<Detail> detalles = new ArrayList<>(); 
                 for (Detail det : lpn.getDetails()) {
                     String merchandiseGroupId = "";
-                    String prefijo = "";
-                    if(det.getSku().length() == 9)
+                    if(det.getSku().length() == 9 && !tienePrefijo)
                     {
                         prefijo = "BIR";
                     }
@@ -308,38 +306,44 @@ public class PubSubSuscriber {
                    .toList();
                     if(!filteredItems.isEmpty() && filteredItems.get(0).getMerchandiseGroupId() != null)
                     {
-                        merchandiseGroupId = filteredItems.get(0).getMerchandiseGroupId();
-                        //M1,M2,M3 BIM;
-                        if(merchandiseGroupId.equals("M1") || merchandiseGroupId.equals("M2") || merchandiseGroupId.equals("M3")){
-                            prefijo = "BIM";
-                         }
-                        if(merchandiseGroupId.equals("M4") || merchandiseGroupId.equals("M5") || merchandiseGroupId.equals("M6") || merchandiseGroupId.equals("M7")){
-                            prefijo = "BIT";
+                        if (!tienePrefijo) {
+                            merchandiseGroupId = filteredItems.get(0).getMerchandiseGroupId();
+                            //M1,M2,M3 BIM;
+                            if(merchandiseGroupId.equals("M1") || merchandiseGroupId.equals("M2") || merchandiseGroupId.equals("M3")){
+                                prefijo = "BIM";
+                            }
+                            if(merchandiseGroupId.equals("M4") || merchandiseGroupId.equals("M5") || merchandiseGroupId.equals("M6") || merchandiseGroupId.equals("M7")){
+                                prefijo = "BIT";
+                            }
                         }
                         det.setCurrentSaleUnitRetailPriceAmount(filteredItems.get(0).getUnitCost().longValue());
                     }
                     else{
                         throw new AppNotFoundHandler(String.format(ITEM_NOT_FOUND, det.getSku()));
                     }
-                    det.setAsnReference(prefijo + det.getAsnReference());
+                    if (!tienePrefijo) {
+                        det.setAsnReference(prefijo + det.getAsnReference());
+                    }
+                    if (prefijo.equals("MTA")){
+                        asnOriginal = asnOriginal.replace("MTA","AREA");
+                        det.setAsnReference(asnOriginal);
+                    }
                     detalles.add(det);
+                    lpn.setAsnReference(asnOriginal);
                     detallesGeneral.add(det);
                 }
                 lpn.setDetails(detalles);
                 lpnsn.add(lpn);
             }
             jsonIn.setLpns(lpnsn);
-            String tipos = "BIM,BIR,BIT";
-            String[] prefijos = tipos.split(",");
             ArrayList<Datum> tmpData = new ArrayList<>();
-            for(String prefijo: prefijos){
+            for(String prefijoASN: prefijosASN){
                 Datum data;
-                String asn = prefijo + asnOriginal; 
                 List<Detail> detalles = detallesGeneral.stream()
-                   .filter(item -> item.getAsnReference().equals(asn))
+                   .filter(item -> item.getAsnReference().startsWith(prefijoASN))
                    .toList();
                 if(!detalles.isEmpty()){
-                    data = procesaJson(detalles,jsonIn,prefijo);
+                    data = procesaJson(detalles,jsonIn,prefijoASN,tienePrefijo);
                     if (data != null && data.getDestinationFacilityId().equals("30024")) {
                         tmpData.add(data);
                     }
@@ -348,8 +352,8 @@ public class PubSubSuscriber {
             String message = new JsonConverter().toJson(new JsonOut(tmpData));
             if (publisherMessaje != null) {
                 if(!tmpData.isEmpty()){
-                    messageId = publisherMessaje.publishWithCustomAttributes(appConfig.getProjectIdDes(), appConfig.getTopicIdDes(), message);
                     asnTexcocoService.insertManhattanAsn(message, jsonIn.getAsnReference());
+                    messageId = publisherMessaje.publishWithCustomAttributes(appConfig.getProjectIdDes(), appConfig.getTopicIdDes(), message);
                 }
             } else {
                 logger.warn("Publisher Message is not initialized, unable to publish message: {}", message);
@@ -429,13 +433,20 @@ public class PubSubSuscriber {
         }
     }
 
-    private Datum procesaJson(List<Detail> details, JsonIn jsonIn,String prefijo){
+    private Datum procesaJson(List<Detail> details, JsonIn jsonIn, String prefijo, boolean tienePrefijo){
         DateFormat dateFormat = new SimpleDateFormat("y-MM-dd'T'hh:mm:ss.SSS");
 
         Datum data = new Datum();
-        data.setAsnId(prefijo + jsonIn.getAsnReference());
-        data.setAsnLevelId((Objects.equals(prefijo, "BIT")) ? "ITEM" : "LPN");
-        data.setAsnOriginTypeId("W");
+        data.setAsnId( tienePrefijo ?
+                jsonIn.getAsnReference().replace("MTA","AREA") :
+                prefijo + jsonIn.getAsnReference());
+        if (Streams.of("MRB","CT","AREA").anyMatch(pref->pref.equals(prefijo))){
+            data.setAsnLevelId("ITEM");
+            data.setAsnOriginTypeId("S");
+        } else {
+            data.setAsnLevelId((Objects.equals(prefijo, "BIT")) ? "ITEM" : "LPN");
+            data.setAsnOriginTypeId((Objects.equals(prefijo, "HAB")) ? "S" : "W");
+        }
         data.setAsnStatus("1000");
         data.setCanceled(false);
         data.setDestinationFacilityId(
@@ -443,7 +454,7 @@ public class PubSubSuscriber {
                             String.format("T%03d", jsonIn.getDestinationBusinessUnitId()).replace(' ', '0') :
                             String.valueOf(jsonIn.getDestinationBusinessUnitId())
             );
-        if(prefijo.equals("BIT"))
+        if(Streams.of("BIT","MRB","CT","AREA").anyMatch(pref->pref.equals(prefijo)))
         {
             //genera Asline
             data.setLpn(new ArrayList<>());
@@ -457,7 +468,13 @@ public class PubSubSuscriber {
             List<LpnOut> lpns =  generaOlpn(details, jsonIn,prefijo);
             data.setLpn(lpns);
         }
-        data.setOriginFacilityId("TEXCOCO");
+        if (prefijo.equals("BIR"))
+        {
+            data.setOriginFacilityId(String.format("T%04d", jsonIn.getSourceBusinessUnitId()).replace(' ', '0'));
+        } else
+        {
+            data.setOriginFacilityId("TEXCOCO");
+        }
         data.setShippedDate(dateFormat.format(Calendar.getInstance().getTime()));
         data.setShippedLpns(0.0);
         data.setVendorId(null);
@@ -510,7 +527,8 @@ public class PubSubSuscriber {
                     LpnDetail lpnDetail = new LpnDetail();
                     lpnDetail.setLpnDetailId(Integer.toString(++lineidsize));
                     lpnDetail.setItemId(det.getSku());
-                    lpnDetail.setExtended(new Extended("1"));
+                    lpnDetail.setExtended(new Extended(prefijo.equals("BIR") ?
+                            det.getCurrentSaleUnitRetailPriceAmount().toString() : "1"));
                     lpnDetail.setBatchNumber(null);
                     lpnDetail.setQuantityUomId("UNIT");                    
                     lpnDetail.setRetailPrice(det.getCurrentSaleUnitRetailPriceAmount().doubleValue());
