@@ -284,7 +284,7 @@ public class PubSubSuscriber {
                 }
             }
 
-            String[] prefijosASN = {"BIM","BIR","BIT","HAB","MRB","CT","MTA","AREA"};
+            String[] prefijosASN = {"BIM","BIR","BIT","HAB","MRB","CT","MTA","AREA","SOB"};
             String prefijo = Arrays.stream(prefijosASN).filter(asnOriginal::startsWith)
                     .findFirst().orElse(null);
             tienePrefijo = StringUtils.isNoneBlank(prefijo);
@@ -438,15 +438,17 @@ public class PubSubSuscriber {
 
         Datum data = new Datum();
         double countOlpn = 0.0;
-        data.setAsnId( tienePrefijo ?
+        String asnId =  tienePrefijo ?
                 jsonIn.getAsnReference().replace("MTA","AREA") :
-                prefijo + jsonIn.getAsnReference());
+                prefijo + jsonIn.getAsnReference();
+        asnId = asnId.replace("SOB","");
+        data.setAsnId(asnId);
         if (Streams.of("MRB","CT","AREA").anyMatch(pref->pref.equals(prefijo))){
             data.setAsnLevelId("ITEM");
             data.setAsnOriginTypeId("S");
         } else {
             data.setAsnLevelId((Objects.equals(prefijo, "BIT")) ? "ITEM" : "LPN");
-            data.setAsnOriginTypeId((Objects.equals(prefijo, "HAB")) ? "S" : "W");
+            data.setAsnOriginTypeId(Streams.of("HAB","SOB").anyMatch(pref->pref.equals(prefijo))  ? "S" : "W");
         }
         data.setAsnStatus("1000");
         data.setCanceled(false);

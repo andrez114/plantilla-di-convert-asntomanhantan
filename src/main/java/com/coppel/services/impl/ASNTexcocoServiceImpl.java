@@ -294,7 +294,7 @@ public class ASNTexcocoServiceImpl implements ASNTexcocoService {
         ManhattanAsn manhattanAsn = new ManhattanAsn();
         manhattanAsn.setDesPayload(payload);
         manhattanAsn.setFecRegistro(new Timestamp(System.currentTimeMillis()));
-        manhattanAsn.setAsnReference(asnRefence);
+        manhattanAsn.setAsnReference(asnRefence.replace("SOB",""));
         manhattanAsnRepository.save(manhattanAsn);
     }
 }
