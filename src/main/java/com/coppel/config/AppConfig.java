@@ -27,6 +27,9 @@ public class AppConfig {
     @Value("${app.urlAuthServiceManhattan}")
     private String urlAuthServiceManhattan;
 
+    @Value("${app.urlServiceRestManhattan}")
+    private String urlServiceRestManhattan;
+
     @Value("${app.tokenAuthServiceManhattan}")
     private String tokenAuthServiceManhattan;
 

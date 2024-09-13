@@ -531,8 +531,7 @@ public class PubSubSuscriber {
                     LpnDetail lpnDetail = new LpnDetail();
                     lpnDetail.setLpnDetailId(Integer.toString(++lineidsize));
                     lpnDetail.setItemId(det.getSku());
-                    lpnDetail.setExtended(new Extended(prefijo.equals("BIR") ?
-                            det.getCurrentSaleUnitRetailPriceAmount().toString() : "1"));
+                    lpnDetail.setExtended(new Extended(det.getCurrentSaleUnitRetailPriceAmount().toString()));
                     lpnDetail.setBatchNumber(null);
                     lpnDetail.setQuantityUomId("UNIT");                    
                     lpnDetail.setRetailPrice(det.getCurrentSaleUnitRetailPriceAmount().doubleValue());

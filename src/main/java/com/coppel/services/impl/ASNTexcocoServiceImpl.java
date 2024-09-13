@@ -74,6 +74,7 @@ public class ASNTexcocoServiceImpl implements ASNTexcocoService {
     private AppConfig appConfig;
 
 
+
     @Override
     public void processOrignalOrderRopa(JsonIn originalOrderROpa) {
 
@@ -102,8 +103,10 @@ public class ASNTexcocoServiceImpl implements ASNTexcocoService {
             asnToManhattan.setAsnId(data.getAsnId());
             String payload = JsonConverter.convertObjectToJson(data);
             asnToManhattan.setPayload(payload);
+            String payloadmanhattan = JsonConverter.convertObjectToJson(asnMessageMuebles);
             asnToManhattanService.insertAsnId(asnToManhattan);
-            publishASNToManhattanMuebles(asnMessageMuebles);
+            //publishASNToManhattanMuebles(asnMessageMuebles);  // quitar esto y remplazarlo por el api rest
+            asnToManhattanService.publishToManhattan(asnMessageMuebles);
         }
     }
 
@@ -171,8 +174,6 @@ public class ASNTexcocoServiceImpl implements ASNTexcocoService {
         boolean isTypeDocumentAsnIdValid = asnCanonicoRequest.getLpns().stream()
                 .flatMap(lpn -> lpn.getDetails().stream())
                 .allMatch(detail -> detail.getTypeDocumentAsnId().equals(REQUIRED_TYPE_DOCUMENT_ASN_ID_MUEBLES));
-
-
         return isTypeDocumentAsnIdValid;
     }
 

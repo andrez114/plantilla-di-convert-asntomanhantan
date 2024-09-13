@@ -1,6 +1,7 @@
 package com.coppel.config;
 
 
+import com.coppel.entities.AsnManhattanRequestAndRespose;
 import com.coppel.entities.AsnToManhattan;
 import com.coppel.entities.OriginalOrder;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,6 +46,7 @@ public class AsnToManhattanConfig {
         return builder.dataSource(conexionAsnDataSource())
                 .packages(AsnToManhattan.class)
                 .packages(OriginalOrder.class)
+                .packages(AsnManhattanRequestAndRespose.class)
                 .build();
     }
 
