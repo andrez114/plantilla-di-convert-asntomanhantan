@@ -33,7 +33,7 @@ app:
   tokenAuthServiceManhattan: b21uaWNvbXBvbmVudC4xLjAuMDpiNHM4cmdUeWc1NVhZTnVu
   urlServicePurchaseOrderManhattan: https://coppp.sce.manh.com/receiving/api/receiving/purchaseOrder/?query=PurchaseOrderId=
   urlMerchandising: https://coppp.sce.manh.com/item-master/api/item-master/item/search
-  urlServiceRestManhattan: https://coppp.sce.manh.com/receiving/api/receiving/asn/bulkImporto
+  urlServiceRestManhattan: https://coppp.sce.manh.com/receiving/api/receiving/asn/bulkImport
 
 
 spring:

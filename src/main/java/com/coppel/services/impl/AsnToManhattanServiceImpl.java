@@ -5,6 +5,7 @@ import com.coppel.dto.asn.muebles.ASNMessageMuebles;
 import com.coppel.dto.token.AuthResponseDTO;
 import com.coppel.entities.AsnManhattanRequestAndRespose;
 import com.coppel.entities.AsnToManhattan;
+import com.coppel.execeptions.ErrorGeneralException;
 import com.coppel.mappers.JsonConverter;
 import com.coppel.pubsub.PubSubSuscriber;
 import com.coppel.repository.asn.AsnManhattanRequestAndResposeRepository;
@@ -13,9 +14,7 @@ import com.coppel.services.AsnToManhattanService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
+import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
@@ -59,11 +58,17 @@ public class AsnToManhattanServiceImpl implements AsnToManhattanService {
         String uri = appConfig.getUrlServiceRestManhattan();
 
         try {
-            String responseDTO = restTemplate.postForEntity(uri, requestEntity, String.class).getBody();
-            AsnManhattanRequestAndRespose asnManhattanRequestAndRespose1 = new AsnManhattanRequestAndRespose();
-            asnManhattanRequestAndRespose1.setRequest(body);
-            asnManhattanRequestAndRespose1.setResponse(responseDTO);
-            asnManhattanRequestAndResposeRepository.save(asnManhattanRequestAndRespose1);
+            ResponseEntity<String> response = restTemplate.postForEntity(uri, requestEntity, String.class);
+            HttpStatusCode statusCode = response.getStatusCode();
+            if (statusCode == HttpStatus.OK){
+                String responseDTO = response.getBody();
+                AsnManhattanRequestAndRespose asnManhattanRequestAndRespose1 = new AsnManhattanRequestAndRespose();
+                asnManhattanRequestAndRespose1.setRequest(body);
+                asnManhattanRequestAndRespose1.setResponse(responseDTO);
+                asnManhattanRequestAndResposeRepository.save(asnManhattanRequestAndRespose1);
+            }else {
+                throw new ErrorGeneralException("La solicitud al API no fue exitosa: " + statusCode);
+            }
         } catch (HttpClientErrorException e) {
             // Manejar error de cliente
             logger.error("Error de cliente: " + e.getMessage());
