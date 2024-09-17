@@ -11,7 +11,7 @@ public class ItemDTO {
     public String sku;
     public Integer lineItemDetail;
     public String status;
-    public Integer refurbishedUnitId;
+    public String refurbishedUnitId;  // cambia de  integer a String
     public Long unitCount;
     public Integer quantitySupplied;
     public boolean singleLineOrder;

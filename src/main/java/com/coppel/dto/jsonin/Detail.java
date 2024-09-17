@@ -48,6 +48,16 @@ public class Detail implements Serializable{
     @JsonProperty("typeShortName")
     private String typeShortName;
 
+    @JsonProperty("refurbishedUnitId")
+    private String refurbishedUnitId;
+
+    public String getRefurbishedUnitId() {
+        return refurbishedUnitId;
+    }
+
+    public void setRefurbishedUnitId(String refurbishedUnitId) {
+        this.refurbishedUnitId = refurbishedUnitId;
+    }
 
     public String getAsnReference() {
         return asnReference;

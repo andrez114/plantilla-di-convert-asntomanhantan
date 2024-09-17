@@ -139,11 +139,12 @@ public class PubSubSuscriber {
 
     public void publishOriginalOrderRopa(JsonIn jsonIn){
         DateFormat dateFormat = new SimpleDateFormat("y-MM-dd'T'hh:mm:ss.SSS");
+        Date fecha = new Date();
         try{
 
             OriginalOrderDTO originalOrderDTO  = new OriginalOrderDTO();
             originalOrderDTO.setOriginalOrderId("CDR"+ jsonIn.getPurchaseOrderId()+jsonIn.getReferenceId()+jsonIn.getSourceBusinessUnitId()+jsonIn.getDestinationBusinessUnitId()+"R");
-            originalOrderDTO.setCreateDateTimestamp(dateFormat.format(Calendar.getInstance().getTime()));
+            originalOrderDTO.setCreateDateTimestamp(dateFormat.format(fecha.getTime()));
             originalOrderDTO.setMinimumStatus("0000");
             originalOrderDTO.setMaximumStatus("0000");
             originalOrderDTO.setOrderType("CrossDocking");
@@ -161,7 +162,7 @@ public class PubSubSuscriber {
                 itemDTO.setSku(det.getSku());
                 itemDTO.setLineItemDetail(contador++);
                 itemDTO.setStatus("0000");
-                itemDTO.setRefurbishedUnitId(0);
+                itemDTO.setRefurbishedUnitId("0");
                 itemDTO.setUnitCount(det.getRetailUnitCount());
                 itemDTO.setQuantitySupplied(0);
                 itemDTO.setSingleLineOrder(false);
@@ -209,11 +210,12 @@ public class PubSubSuscriber {
 
     public void publishOriginalOrderMuebles(JsonIn jsonIn){
         DateFormat dateFormat = new SimpleDateFormat("y-MM-dd'T'hh:mm:ss.SSS");
+        Date fecha = new Date();
         try{
 
             OriginalOrderDTO originalOrderDTO  = new OriginalOrderDTO();
-            originalOrderDTO.setOriginalOrderId("CDM"+ dateFormat.format(Calendar.getInstance())+jsonIn.getDestinationBusinessUnitId()+jsonIn.getPurchaseOrderId()+"M");
-            originalOrderDTO.setCreateDateTimestamp(dateFormat.format(Calendar.getInstance().getTime()));
+            originalOrderDTO.setOriginalOrderId("CDM"+ dateFormat.format(fecha)+jsonIn.getDestinationBusinessUnitId()+jsonIn.getPurchaseOrderId()+"M");
+            originalOrderDTO.setCreateDateTimestamp(dateFormat.format(fecha.getTime()));
             originalOrderDTO.setMinimumStatus("0000");
             originalOrderDTO.setMaximumStatus("0000");
             originalOrderDTO.setOrderType("CrossDocking");
@@ -231,7 +233,7 @@ public class PubSubSuscriber {
                 itemDTO.setSku(det.getSku());
                 itemDTO.setLineItemDetail(contador++);
                 itemDTO.setStatus("0000");
-                itemDTO.setRefurbishedUnitId(0);
+                itemDTO.setRefurbishedUnitId(det.getRefurbishedUnitId());
                 itemDTO.setUnitCount(det.getRetailUnitCount());
                 itemDTO.setQuantitySupplied(0);
                 itemDTO.setSingleLineOrder(false);
@@ -379,7 +381,7 @@ public class PubSubSuscriber {
         asnLine.setExtended(new Extended("1"));
         asnLine.setExpiryDate(null);
         asnLine.setInventoryAttribute1(null);
-        asnLine.setInventoryAttribute2(null);
+        asnLine.setInventoryAttribute2(det.getRefurbishedUnitId());
         asnLine.setInventoryTypeId("N");
         asnLine.setItemId(det.getSku());
         asnLine.setProductStatusId("InStock");
@@ -435,6 +437,7 @@ public class PubSubSuscriber {
 
     private Datum procesaJson(List<Detail> details, JsonIn jsonIn, String prefijo, boolean tienePrefijo){
         DateFormat dateFormat = new SimpleDateFormat("y-MM-dd'T'hh:mm:ss.SSS");
+        Date fecha = new Date();
 
         Datum data = new Datum();
         double countOlpn = 0.0;
@@ -472,14 +475,17 @@ public class PubSubSuscriber {
             countOlpn = lpns.size();
             data.setLpn(lpns);
         }
-        if (prefijo.equals("BIR"))
+        if (Streams.of("BIT","BIR","BIM").anyMatch(pref->pref.equals(prefijo)))
+        {
+            data.setOriginFacilityId(jsonIn.getSourceBusinessUnitId().toString());
+        } else if (Streams.of("CT").anyMatch(pref->pref.equals(prefijo)))
         {
             data.setOriginFacilityId(String.format("T%04d", jsonIn.getSourceBusinessUnitId()).replace(' ', '0'));
-        } else
+        }else
         {
             data.setOriginFacilityId("TEXCOCO");
         }
-        data.setShippedDate(dateFormat.format(Calendar.getInstance().getTime()));
+        data.setShippedDate(dateFormat.format(fecha.getTime()));
         data.setShippedLpns(countOlpn);
         data.setVendorId(null);
         return data;
@@ -497,7 +503,7 @@ public class PubSubSuscriber {
             asnLine.setExtended(new Extended("1"));
             asnLine.setExpiryDate(null);
             asnLine.setInventoryAttribute1(null);
-            asnLine.setInventoryAttribute2(null);
+            asnLine.setInventoryAttribute2(det.getRefurbishedUnitId());
             asnLine.setInventoryTypeId("N");
             asnLine.setItemId(det.getSku());
             asnLine.setProductStatusId("InStock");
@@ -536,7 +542,7 @@ public class PubSubSuscriber {
                     lpnDetail.setQuantityUomId("UNIT");                    
                     lpnDetail.setRetailPrice(det.getCurrentSaleUnitRetailPriceAmount().doubleValue());
                     lpnDetail.setShippedQuantity(det.getRetailUnitCount().doubleValue());
-                    lpnDetail.setInventoryAttribute2(null);
+                    lpnDetail.setInventoryAttribute2((Objects.equals(prefijo,"BIR")) ? null: "RefurbishedId");
                     lpnDetail.setInventoryTypeId("N");
                     lpnDetail.setExpiryDate(null);
                     lpnDetails.add(lpnDetail);

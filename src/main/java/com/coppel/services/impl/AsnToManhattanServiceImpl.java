@@ -53,20 +53,25 @@ public class AsnToManhattanServiceImpl implements AsnToManhattanService {
         headers.set("Authorization", "Bearer " + getAccessToken());
         headers.set("SelectedLocation", "TEXCOCO");
         headers.set("SelectedOrganization", "TEXCOCO");
+        String asnId =  asnMessageMuebles.getData().get(0).getAsnId();  // se toma el AsnId para guardar
         String body = JsonConverter.convertObjectToJson(asnMessageMuebles);
         HttpEntity<String> requestEntity = new HttpEntity<>(body,headers);
         String uri = appConfig.getUrlServiceRestManhattan();
-
+        String responseDTO = "";
+        AsnManhattanRequestAndRespose asnManhattanRequestAndRespose1 = new AsnManhattanRequestAndRespose();
         try {
             ResponseEntity<String> response = restTemplate.postForEntity(uri, requestEntity, String.class);
             HttpStatusCode statusCode = response.getStatusCode();
             if (statusCode == HttpStatus.OK){
-                String responseDTO = response.getBody();
-                AsnManhattanRequestAndRespose asnManhattanRequestAndRespose1 = new AsnManhattanRequestAndRespose();
+                 responseDTO = response.getBody();
                 asnManhattanRequestAndRespose1.setRequest(body);
                 asnManhattanRequestAndRespose1.setResponse(responseDTO);
                 asnManhattanRequestAndResposeRepository.save(asnManhattanRequestAndRespose1);
             }else {
+                responseDTO = response.getBody();
+                asnManhattanRequestAndRespose1.setRequest(body);
+                asnManhattanRequestAndRespose1.setResponse(responseDTO);
+                asnManhattanRequestAndResposeRepository.save(asnManhattanRequestAndRespose1);
                 throw new ErrorGeneralException("La solicitud al API no fue exitosa: " + statusCode);
             }
         } catch (HttpClientErrorException e) {
