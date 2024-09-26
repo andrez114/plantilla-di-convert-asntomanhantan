@@ -542,7 +542,7 @@ public class PubSubSuscriber {
                     lpnDetail.setQuantityUomId("UNIT");                    
                     lpnDetail.setRetailPrice(det.getCurrentSaleUnitRetailPriceAmount().doubleValue());
                     lpnDetail.setShippedQuantity(det.getRetailUnitCount().doubleValue());
-                    lpnDetail.setInventoryAttribute2((Objects.equals(prefijo,"BIR")) ? null: "RefurbishedId");
+                    lpnDetail.setInventoryAttribute2((Objects.equals(prefijo,"BIR") || Objects.equals(prefijo,"HAB") || Objects.equals(prefijo,"SOB")) ? null: det.getRefurbishedUnitId());
                     lpnDetail.setInventoryTypeId("N");
                     lpnDetail.setExpiryDate(null);
                     lpnDetails.add(lpnDetail);

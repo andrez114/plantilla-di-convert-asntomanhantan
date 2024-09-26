@@ -19,4 +19,14 @@ public class AsnManhattanRequestAndRespose{
     @Basic(optional = false)
     @NotNull
     private String response;
+
+    @Column(name = "asn_id")
+    @Basic(optional = false)
+    @NotNull
+    private String asnID;
+
+    @Column(name = "status_http")
+    @Basic(optional = false)
+    @NotNull
+    private String statusHttp;
 }

@@ -88,8 +88,14 @@ public class ASNTexcocoServiceImpl implements ASNTexcocoService {
             asnToManhattan.setAsnId(asnManhattan.getAsnId());
             String payload = JsonConverter.convertObjectToJson(asnManhattan);
             asnToManhattan.setPayload(payload);
-            asnToManhattanService.insertAsnId(asnToManhattan);
             publishASNToManhattan(ASNMessage.builder().data(Collections.singletonList(asnManhattan)).build());
+            try
+            {
+                asnToManhattanService.insertAsnId(asnToManhattan);
+            }catch (Exception ex)
+            {
+                log.error("ocurrio un error al grabar en tabla asntomanhattan " + ex);
+            }
         }
     }
 
@@ -101,12 +107,17 @@ public class ASNTexcocoServiceImpl implements ASNTexcocoService {
             asnMessageMuebles.setData(Collections.singletonList(data));
             AsnToManhattan asnToManhattan = new AsnToManhattan();
             asnToManhattan.setAsnId(data.getAsnId());
-            String payload = JsonConverter.convertObjectToJson(data);
-            asnToManhattan.setPayload(payload);
             String payloadmanhattan = JsonConverter.convertObjectToJson(asnMessageMuebles);
-            asnToManhattanService.insertAsnId(asnToManhattan);
-            //publishASNToManhattanMuebles(asnMessageMuebles);  // quitar esto y remplazarlo por el api rest
+            asnToManhattan.setPayload(payloadmanhattan);
             asnToManhattanService.publishToManhattan(asnMessageMuebles);
+            try
+            {
+                asnToManhattanService.insertAsnId(asnToManhattan);
+            }catch (Exception ex)
+            {
+                log.error("ocurrio un error al grabar en tabla asntomanhattan " + ex);
+            }
+
         }
     }
 

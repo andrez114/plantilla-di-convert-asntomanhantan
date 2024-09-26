@@ -62,17 +62,20 @@ public class AsnToManhattanServiceImpl implements AsnToManhattanService {
         try {
             ResponseEntity<String> response = restTemplate.postForEntity(uri, requestEntity, String.class);
             HttpStatusCode statusCode = response.getStatusCode();
+            responseDTO = response.getBody();
             if (statusCode == HttpStatus.OK){
-                 responseDTO = response.getBody();
+                asnManhattanRequestAndRespose1.setAsnID(asnId);
+                asnManhattanRequestAndRespose1.setStatusHttp(statusCode.toString());
                 asnManhattanRequestAndRespose1.setRequest(body);
                 asnManhattanRequestAndRespose1.setResponse(responseDTO);
                 asnManhattanRequestAndResposeRepository.save(asnManhattanRequestAndRespose1);
             }else {
-                responseDTO = response.getBody();
+                asnManhattanRequestAndRespose1.setAsnID(asnId);
+                asnManhattanRequestAndRespose1.setStatusHttp(statusCode.toString());
                 asnManhattanRequestAndRespose1.setRequest(body);
                 asnManhattanRequestAndRespose1.setResponse(responseDTO);
                 asnManhattanRequestAndResposeRepository.save(asnManhattanRequestAndRespose1);
-                throw new ErrorGeneralException("La solicitud al API no fue exitosa: " + statusCode);
+                throw new ErrorGeneralException("La solicitud al API " + uri +"no fue exitosa: " + statusCode);
             }
         } catch (HttpClientErrorException e) {
             // Manejar error de cliente
