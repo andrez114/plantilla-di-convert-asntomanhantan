@@ -233,7 +233,7 @@ public class PubSubSuscriber {
                 itemDTO.setSku(det.getSku());
                 itemDTO.setLineItemDetail(contador++);
                 itemDTO.setStatus("0000");
-                itemDTO.setRefurbishedUnitId(det.getRefurbishedUnitId());
+                itemDTO.setRefurbishedUnitId(det.getRefurbishedUnitId().equals("0") ? "N" : det.getRefurbishedUnitId());
                 itemDTO.setUnitCount(det.getRetailUnitCount());
                 itemDTO.setQuantitySupplied(0);
                 itemDTO.setSingleLineOrder(false);
@@ -381,7 +381,7 @@ public class PubSubSuscriber {
         asnLine.setExtended(new Extended("1"));
         asnLine.setExpiryDate(null);
         asnLine.setInventoryAttribute1(null);
-        asnLine.setInventoryAttribute2(det.getRefurbishedUnitId());
+        asnLine.setInventoryAttribute2((det.getRefurbishedUnitId().equals("0") ? "N":det.getRefurbishedUnitId()));
         asnLine.setInventoryTypeId("N");
         asnLine.setItemId(det.getSku());
         asnLine.setProductStatusId("InStock");
@@ -503,7 +503,7 @@ public class PubSubSuscriber {
             asnLine.setExtended(new Extended("1"));
             asnLine.setExpiryDate(null);
             asnLine.setInventoryAttribute1(null);
-            asnLine.setInventoryAttribute2(det.getRefurbishedUnitId());
+            asnLine.setInventoryAttribute2((det.getRefurbishedUnitId().equals("0")) ? "N":det.getRefurbishedUnitId());
             asnLine.setInventoryTypeId("N");
             asnLine.setItemId(det.getSku());
             asnLine.setProductStatusId("InStock");
