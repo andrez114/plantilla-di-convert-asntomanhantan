@@ -542,7 +542,7 @@ public class PubSubSuscriber {
                     lpnDetail.setQuantityUomId("UNIT");                    
                     lpnDetail.setRetailPrice(det.getCurrentSaleUnitRetailPriceAmount().doubleValue());
                     lpnDetail.setShippedQuantity(det.getRetailUnitCount().doubleValue());
-                    lpnDetail.setInventoryAttribute2((Objects.equals(prefijo,"BIR") || Objects.equals(prefijo,"HAB") || Objects.equals(prefijo,"SOB")) ? null: det.getRefurbishedUnitId());
+                    lpnDetail.setInventoryAttribute2( this.createInventoryAttribute2(prefijo, det) );
                     lpnDetail.setInventoryTypeId("N");
                     lpnDetail.setExpiryDate(null);
                     lpnDetails.add(lpnDetail);
@@ -553,5 +553,14 @@ public class PubSubSuscriber {
             }
         }
         return lpnOut;
+    }
+
+    private String createInventoryAttribute2(String prefijo, Detail det){
+        if( Objects.equals(prefijo,"BIR")
+                || Objects.equals(prefijo,"HAB")
+                || Objects.equals(prefijo,"SOB"))
+            return null;
+
+        return det.getRefurbishedUnitId().trim().equals("0") ? "N" : det.getRefurbishedUnitId();
     }
 }
