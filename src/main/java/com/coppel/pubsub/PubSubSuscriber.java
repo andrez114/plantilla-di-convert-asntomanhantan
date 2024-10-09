@@ -379,7 +379,8 @@ public class PubSubSuscriber {
         asnLine.setBatchNumber(null);
         asnLine.setCanceled(false);
         asnLine.setExtended(new Extended("1"));
-        asnLine.setExpiryDate(null);
+        String expiryDate = det.getExpiryDate();
+        asnLine.setExpiryDate((expiryDate == null || det.getExpiryDate().equals("1900-01-01")) ? null : det.getExpiryDate());
         asnLine.setInventoryAttribute1(null);
         asnLine.setInventoryAttribute2((det.getRefurbishedUnitId().equals("0") ? "N":det.getRefurbishedUnitId()));
         asnLine.setInventoryTypeId("N");
@@ -501,7 +502,8 @@ public class PubSubSuscriber {
             asnLine.setBatchNumber(null);
             asnLine.setCanceled(false);
             asnLine.setExtended(new Extended("1"));
-            asnLine.setExpiryDate(null);
+            String expiryDate = det.getExpiryDate();
+            asnLine.setExpiryDate((expiryDate == null || det.getExpiryDate().equals("1900-01-01")) ? null : det.getExpiryDate());
             asnLine.setInventoryAttribute1(null);
             asnLine.setInventoryAttribute2((det.getRefurbishedUnitId().equals("0")) ? "N":det.getRefurbishedUnitId());
             asnLine.setInventoryTypeId("N");
@@ -544,7 +546,8 @@ public class PubSubSuscriber {
                     lpnDetail.setShippedQuantity(det.getRetailUnitCount().doubleValue());
                     lpnDetail.setInventoryAttribute2( this.createInventoryAttribute2(prefijo, det) );
                     lpnDetail.setInventoryTypeId("N");
-                    lpnDetail.setExpiryDate(null);
+                    String expiryDate = det.getExpiryDate();
+                    lpnDetail.setExpiryDate((expiryDate == null || expiryDate.equals("1900-01-01")) ? null : det.getExpiryDate());
                     lpnDetails.add(lpnDetail);
                 }
                 lpnOutNuevo.setPhysicalEntityCodeId("iLPN");

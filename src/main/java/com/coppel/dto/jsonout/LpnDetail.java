@@ -28,6 +28,6 @@ public class LpnDetail {
     private String inventoryAttribute2;
     @JsonProperty("InventoryTypeId")
     private String inventoryTypeId;
-    @JsonProperty("ExpiryDate")
-    private Object expiryDate;
+    @JsonProperty("expiryDate")
+    private Object ExpiryDate;
 }

@@ -51,6 +51,17 @@ public class Detail implements Serializable{
     @JsonProperty("refurbishedUnitId")
     private String refurbishedUnitId;
 
+    @JsonProperty("expiryDate")
+    private String ExpiryDate;
+
+    public String getExpiryDate() {
+        return ExpiryDate;
+    }
+
+    public void setExpiryDate(String expiryDate) {
+        ExpiryDate = expiryDate;
+    }
+
     public String getRefurbishedUnitId() {
         return refurbishedUnitId;
     }
