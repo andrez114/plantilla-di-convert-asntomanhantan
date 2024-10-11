@@ -473,6 +473,10 @@ public class PubSubSuscriber {
             //genera Olpn BIR y BIM
             data.setAsnLine(new ArrayList<>());
             List<LpnOut> lpns =  generaOlpn(details, jsonIn,prefijo);
+            // validacion para checar que el DestinationBusinessUnitId pertenezca a TEXCOCO
+            if(jsonIn.getLpns().stream().filter(item -> item.getDestinationBusinessUnitId() == 30024).count() > 0 ){
+                  data.setDestinationFacilityId("30024");
+            }
             countOlpn = lpns.size();
             data.setLpn(lpns);
         }
@@ -521,12 +525,17 @@ public class PubSubSuscriber {
 
     private List<LpnOut> generaOlpn(List<Detail> detalles, JsonIn jsonIn,String prefijo) {
         List<LpnOut> lpnOut = new ArrayList<>();
-        List<Lpn> lpns = jsonIn.getLpns(); 
-        for(Lpn lpn: lpns ){
+        List<Lpn> lpns = jsonIn.getLpns();
+        //Filtra solo los destinos que contengan TEXCOCO = 30024
+        List<Lpn> lpnsfiltrados = lpns.stream().filter(item -> item.getDestinationBusinessUnitId() == 30024 || item.getDestinationBusinessUnitId() == 0).toList();
+        for(Lpn lpn: lpnsfiltrados ){
             //Crea olpn
             List<Detail> detallesn = detalles.stream()
                    .filter(item -> item.getLpnId().equals(lpn.getLpnId()))
                    .toList();
+
+
+
             if(!detallesn.isEmpty()){
                 //crea olpn
                 LpnOut lpnOutNuevo = new LpnOut();
