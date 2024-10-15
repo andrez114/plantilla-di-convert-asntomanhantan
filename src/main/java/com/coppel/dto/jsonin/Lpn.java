@@ -24,24 +24,24 @@ public class Lpn implements Serializable {
     private Long totalUnitCount;
 
     @JsonProperty("sourceBusinessUnitId")
-    private Long sourceBusinessUnitId;
+    private int sourceBusinessUnitId;
 
     @JsonProperty("destinationBusinessUnitId")
-    private Long destinationBusinessUnitId;
+    private int destinationBusinessUnitId;
 
-    public Long getSourceBusinessUnitId() {
+    public int getSourceBusinessUnitId() {
         return sourceBusinessUnitId;
     }
 
-    public void setSourceBusinessUnitId(Long sourceBusinessUnitId) {
+    public void setSourceBusinessUnitId(int sourceBusinessUnitId) {
         this.sourceBusinessUnitId = sourceBusinessUnitId;
     }
 
-    public Long getDestinationBusinessUnitId() {
+    public int getDestinationBusinessUnitId() {
         return destinationBusinessUnitId;
     }
 
-    public void setDestinationBusinessUnitId(Long destinationBusinessUnitId) {
+    public void setDestinationBusinessUnitId(int destinationBusinessUnitId) {
         this.destinationBusinessUnitId = destinationBusinessUnitId;
     }
 
