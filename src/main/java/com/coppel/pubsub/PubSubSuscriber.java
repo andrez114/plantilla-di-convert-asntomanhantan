@@ -298,7 +298,6 @@ public class PubSubSuscriber {
             for(Lpn lpn: lpns){
                 List<Detail> detalles = new ArrayList<>(); 
                 for (Detail det : lpn.getDetails()) {
-                    String merchandiseGroupId = "";
                     if(det.getSku().length() == 9 && !tienePrefijo)
                     {
                         prefijo = "BIR";
@@ -306,15 +305,13 @@ public class PubSubSuscriber {
                     List<MerchandisingInfoDTO> filteredItems = skusMerchandisingInfo.stream()
                    .filter(item -> item.getSku().equals(det.getSku()))
                    .toList();
+
                     if(!filteredItems.isEmpty() && filteredItems.get(0).getMerchandiseGroupId() != null)
                     {
-                        if (!tienePrefijo) {
-                            merchandiseGroupId = filteredItems.get(0).getMerchandiseGroupId();
-                            //M1,M2,M3 BIM;
-                            if(merchandiseGroupId.equals("M1") || merchandiseGroupId.equals("M2") || merchandiseGroupId.equals("M3")){
+                        if (!tienePrefijo && det.getSku().length()<9) {
+                            if(det.getLpnId().startsWith("C") || det.getLpnId().startsWith("M")){
                                 prefijo = "BIM";
-                            }
-                            if(merchandiseGroupId.equals("M4") || merchandiseGroupId.equals("M5") || merchandiseGroupId.equals("M6") || merchandiseGroupId.equals("M7")){
+                            }else {
                                 prefijo = "BIT";
                             }
                         }
@@ -340,6 +337,9 @@ public class PubSubSuscriber {
             jsonIn.setLpns(lpnsn);
             ArrayList<Datum> tmpData = new ArrayList<>();
             for(String prefijoASN: prefijosASN){
+
+
+
                 Datum data;
                 List<Detail> detalles = detallesGeneral.stream()
                    .filter(item -> item.getAsnReference().startsWith(prefijoASN))
@@ -496,31 +496,93 @@ public class PubSubSuscriber {
         return data;
     }
     private List<AsnLine> generaAsnLine(List<Detail> detalles) {
+
+        Map<String, Long> skuSuma = new HashMap<>();
+        Map<String, Detail> skuDetails = new HashMap<>();
+        List<Detail> otrosDetalles = new ArrayList<>();
+
+        // Sumar retailUnitCount por sku si refurbishedUnitId es "0"
+        for (Detail detalle : detalles) {
+            String sku = detalle.getSku();
+            Long count = detalle.getRetailUnitCount();
+            String refurbishedUnitId = detalle.getRefurbishedUnitId();
+
+            if ("0".equals(refurbishedUnitId)) {
+                // Sumar retailUnitCount
+                skuSuma.put(sku, skuSuma.getOrDefault(sku, 0L) + count);
+                // Guardar el detalle para obtener propiedades
+                skuDetails.putIfAbsent(sku, detalle);
+            } else {
+                // Si refurbishedUnitId no es "0", guardar el detalle para añadir a la lista final
+                otrosDetalles.add(detalle);
+            }
+        }
+
+        // Convertir a lista de AsnLine
         List<AsnLine> asnLines = new ArrayList<>();
         int lineidsize = 0;
-        //Crea olpn
-        for (Detail det :detalles) {
+        for (Map.Entry<String, Long> entry : skuSuma.entrySet()) {
+            Detail detalle = skuDetails.get(entry.getKey());
+
             AsnLine asnLine = new AsnLine();
-            asnLine.setAsn(new Asn(det.getAsnReference()));
+            asnLine.setAsn(new Asn(detalle.getAsnReference()));
             //asnLine.setAsnLineId(Integer.toString(jsonIn.getLpns().get(0).getDetails().size()));//"1" o suma los item a nivel lpn
             asnLine.setBatchNumber(null);
             asnLine.setCanceled(false);
             asnLine.setExtended(new Extended("1"));
-            String expiryDate = det.getExpiryDate();
-            asnLine.setExpiryDate((expiryDate == null || det.getExpiryDate().equals("1900-01-01")) ? null : det.getExpiryDate());
+            String expiryDate = detalle.getExpiryDate();
+            asnLine.setExpiryDate((expiryDate == null || detalle.getExpiryDate().equals("1900-01-01")) ? null : detalle.getExpiryDate());
             asnLine.setInventoryAttribute1(null);
-            asnLine.setInventoryAttribute2((det.getRefurbishedUnitId().equals("0")) ? "N":det.getRefurbishedUnitId());
+            asnLine.setInventoryAttribute2((detalle.getRefurbishedUnitId().equals("0")) ? "N":detalle.getRefurbishedUnitId());
             asnLine.setInventoryTypeId("N");
-            asnLine.setItemId(det.getSku());
+            asnLine.setItemId(detalle.getSku());
             asnLine.setProductStatusId("InStock");
             asnLine.setQuantityUomId("UNIT");
-            asnLine.setRetailPrice(det.getCurrentSaleUnitRetailPriceAmount().doubleValue());
-            asnLine.setShippedQuantity(det.getRetailUnitCount().doubleValue());
+            asnLine.setRetailPrice(detalle.getCurrentSaleUnitRetailPriceAmount().doubleValue());
+            //Suma de retailUnitCount
+            asnLine.setShippedQuantity(entry.getValue().doubleValue());
             asnLine.setCountryOfOrigin("MEXICO");
             asnLine.setAsnLineId(Integer.toString(++lineidsize));
             asnLines.add(asnLine);
         }
+
+        // Añadir otros detalles que no se sumaron
+        asnLines.addAll(convertirADetalleSinSuma(otrosDetalles));
+
+        JsonConverter conv = new JsonConverter();
+
+        System.out.println(conv.toJson(asnLines));
+
         return asnLines;
+    }
+
+    private static List<AsnLine> convertirADetalleSinSuma(List<Detail> otrosDetalles) {
+        List<AsnLine> resultado = new ArrayList<>();
+        int lineidsize = 0;
+        for (Detail detalle : otrosDetalles) {
+
+            AsnLine asnLine = new AsnLine();
+            asnLine.setAsn(new Asn(detalle.getAsnReference()));
+            //asnLine.setAsnLineId(Integer.toString(jsonIn.getLpns().get(0).getDetails().size()));//"1" o suma los item a nivel lpn
+            asnLine.setBatchNumber(null);
+            asnLine.setCanceled(false);
+            asnLine.setExtended(new Extended("1"));
+            String expiryDate = detalle.getExpiryDate();
+            asnLine.setExpiryDate((expiryDate == null || detalle.getExpiryDate().equals("1900-01-01")) ? null : detalle.getExpiryDate());
+            asnLine.setInventoryAttribute1(null);
+            asnLine.setInventoryAttribute2((detalle.getRefurbishedUnitId().equals("0")) ? "N":detalle.getRefurbishedUnitId());
+            asnLine.setInventoryTypeId("N");
+            asnLine.setItemId(detalle.getSku());
+            asnLine.setProductStatusId("InStock");
+            asnLine.setQuantityUomId("UNIT");
+            asnLine.setRetailPrice(detalle.getCurrentSaleUnitRetailPriceAmount().doubleValue());
+            asnLine.setShippedQuantity(detalle.getRetailUnitCount().doubleValue());
+            asnLine.setCountryOfOrigin("MEXICO");
+            asnLine.setAsnLineId(Integer.toString(++lineidsize));
+
+            resultado.add(asnLine);
+        }
+        return resultado;
     }
 
     private List<LpnOut> generaOlpn(List<Detail> detalles, JsonIn jsonIn,String prefijo) {
