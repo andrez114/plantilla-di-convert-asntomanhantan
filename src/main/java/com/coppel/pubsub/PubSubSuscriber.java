@@ -93,8 +93,8 @@ public class PubSubSuscriber {
                 for (JsonIn jsonIn : jsonInArray) {
                     jsonIn.setPurchaseOrderLineDTOList(
                             asnTexcocoService.getPurchaseOrderFromManhattan(String.valueOf(jsonIn.getPurchaseOrderId())));
-                    
-                    
+
+
                     if(jsonIn.getAsnReference().length() == 36)
                     {
                         if (jsonIn.getSourceBusinessUnitId().equals(28)){
@@ -290,21 +290,21 @@ public class PubSubSuscriber {
             String prefijo = Arrays.stream(prefijosASN).filter(asnOriginal::startsWith)
                     .findFirst().orElse(null);
             tienePrefijo = StringUtils.isNoneBlank(prefijo);
-            
+
             List<MerchandisingInfoDTO> skusMerchandisingInfo = asnTexcocoService.getMerchandisingInfo(skus);
             //Agrega prefijo y preciounitario
             List<Lpn> lpnsn = new ArrayList<>();
             List<Detail> detallesGeneral = new ArrayList<>();
             for(Lpn lpn: lpns){
-                List<Detail> detalles = new ArrayList<>(); 
+                List<Detail> detalles = new ArrayList<>();
                 for (Detail det : lpn.getDetails()) {
                     if(det.getSku().length() == 9 && !tienePrefijo)
                     {
                         prefijo = "BIR";
                     }
                     List<MerchandisingInfoDTO> filteredItems = skusMerchandisingInfo.stream()
-                   .filter(item -> item.getSku().equals(det.getSku()))
-                   .toList();
+                            .filter(item -> item.getSku().equals(det.getSku()))
+                            .toList();
 
                     if(!filteredItems.isEmpty() && filteredItems.get(0).getMerchandiseGroupId() != null)
                     {
@@ -342,8 +342,8 @@ public class PubSubSuscriber {
 
                 Datum data;
                 List<Detail> detalles = detallesGeneral.stream()
-                   .filter(item -> item.getAsnReference().startsWith(prefijoASN))
-                   .toList();
+                        .filter(item -> item.getAsnReference().startsWith(prefijoASN))
+                        .toList();
                 if(!detalles.isEmpty()){
                     data = procesaJson(detalles,jsonIn,prefijoASN,tienePrefijo);
                     if (data != null && data.getDestinationFacilityId().equals("30024")) {
@@ -457,16 +457,19 @@ public class PubSubSuscriber {
         data.setAsnStatus("1000");
         data.setCanceled(false);
         data.setDestinationFacilityId(
-                    jsonIn.getDestinationBusinessUnitId() < 30000 ?
-                            String.format("T%04d", jsonIn.getDestinationBusinessUnitId()).replace(' ', '0') :
-                            String.valueOf(jsonIn.getDestinationBusinessUnitId())
-            );
+                jsonIn.getDestinationBusinessUnitId() < 30000 ?
+                        String.format("T%04d", jsonIn.getDestinationBusinessUnitId()).replace(' ', '0') :
+                        String.valueOf(jsonIn.getDestinationBusinessUnitId())
+        );
         if(Streams.of("BIT","MRB","CT","AREA").anyMatch(pref->pref.equals(prefijo)))
         {
             //genera Asline
             data.setLpn(new ArrayList<>());
-            List<AsnLine> asnLines = generaAsnLine(details); 
-            data.setAsnLine(asnLines); 
+            List<AsnLine> asnLines = generaAsnLine(details,jsonIn);
+            if(jsonIn.getLpns().stream().filter(item -> item.getDestinationBusinessUnitId() == 30024).count() > 0 ){
+                data.setDestinationFacilityId("30024");
+            }
+            data.setAsnLine(asnLines);
         }
         else
         {
@@ -475,7 +478,7 @@ public class PubSubSuscriber {
             List<LpnOut> lpns =  generaOlpn(details, jsonIn,prefijo);
             // validacion para checar que el DestinationBusinessUnitId pertenezca a TEXCOCO
             if(jsonIn.getLpns().stream().filter(item -> item.getDestinationBusinessUnitId() == 30024).count() > 0 ){
-                  data.setDestinationFacilityId("30024");
+                data.setDestinationFacilityId("30024");
             }
             countOlpn = lpns.size();
             data.setLpn(lpns);
@@ -495,26 +498,39 @@ public class PubSubSuscriber {
         data.setVendorId(null);
         return data;
     }
-    private List<AsnLine> generaAsnLine(List<Detail> detalles) {
+    private List<AsnLine> generaAsnLine(List<Detail> detalles, JsonIn jsonIn) {
 
         Map<String, Long> skuSuma = new HashMap<>();
         Map<String, Detail> skuDetails = new HashMap<>();
         List<Detail> otrosDetalles = new ArrayList<>();
+        List<Detail> detallesFiltrado = new ArrayList<>();
 
         // Sumar retailUnitCount por sku si refurbishedUnitId es "0"
-        for (Detail detalle : detalles) {
-            String sku = detalle.getSku();
-            Long count = detalle.getRetailUnitCount();
-            String refurbishedUnitId = detalle.getRefurbishedUnitId();
+        List<Lpn> lpns = jsonIn.getLpns();
+        //Filtra solo los destinos que contengan TEXCOCO = 30024
+        List<Lpn> lpnsfiltrados = lpns.stream().filter(item -> item.getDestinationBusinessUnitId() == 30024 || item.getDestinationBusinessUnitId() == 0).toList();
+        for(Lpn lpn :lpnsfiltrados)
+        {
+            detallesFiltrado = detalles.stream()
+                    .filter(item -> item.getLpnId().equals(lpn.getLpnId()))
+                    .toList();
 
-            if ("0".equals(refurbishedUnitId)) {
-                // Sumar retailUnitCount
-                skuSuma.put(sku, skuSuma.getOrDefault(sku, 0L) + count);
-                // Guardar el detalle para obtener propiedades
-                skuDetails.putIfAbsent(sku, detalle);
-            } else {
-                // Si refurbishedUnitId no es "0", guardar el detalle para añadir a la lista final
-                otrosDetalles.add(detalle);
+
+
+            for (Detail detalle : detallesFiltrado) {
+                String sku = detalle.getSku();
+                Long count = detalle.getRetailUnitCount();
+                String refurbishedUnitId = detalle.getRefurbishedUnitId();
+
+                if ("0".equals(refurbishedUnitId)) {
+                    // Sumar retailUnitCount
+                    skuSuma.put(sku, skuSuma.getOrDefault(sku, 0L) + count);
+                    // Guardar el detalle para obtener propiedades
+                    skuDetails.putIfAbsent(sku, detalle);
+                } else {
+                    // Si refurbishedUnitId no es "0", guardar el detalle para añadir a la lista final
+                    otrosDetalles.add(detalle);
+                }
             }
         }
 
@@ -593,8 +609,8 @@ public class PubSubSuscriber {
         for(Lpn lpn: lpnsfiltrados ){
             //Crea olpn
             List<Detail> detallesn = detalles.stream()
-                   .filter(item -> item.getLpnId().equals(lpn.getLpnId()))
-                   .toList();
+                    .filter(item -> item.getLpnId().equals(lpn.getLpnId()))
+                    .toList();
 
 
 
@@ -602,7 +618,7 @@ public class PubSubSuscriber {
                 //crea olpn
                 LpnOut lpnOutNuevo = new LpnOut();
                 lpnOutNuevo.setLpnId(lpn.getLpnId());
-                
+
                 lpnOutNuevo.setLpnSizeTypeId((Objects.equals(prefijo,"BIM")) ? "Jaba Azul Chica": "Carton");
                 List<LpnDetail> lpnDetails =  new ArrayList<>();
                 int lineidsize = 0;
@@ -612,7 +628,7 @@ public class PubSubSuscriber {
                     lpnDetail.setItemId(det.getSku());
                     lpnDetail.setExtended(new Extended(det.getCurrentSaleUnitRetailPriceAmount().toString()));
                     lpnDetail.setBatchNumber(null);
-                    lpnDetail.setQuantityUomId("UNIT");                    
+                    lpnDetail.setQuantityUomId("UNIT");
                     lpnDetail.setRetailPrice(det.getCurrentSaleUnitRetailPriceAmount().doubleValue());
                     lpnDetail.setShippedQuantity(det.getRetailUnitCount().doubleValue());
                     lpnDetail.setInventoryAttribute2( this.createInventoryAttribute2(prefijo, det) );
