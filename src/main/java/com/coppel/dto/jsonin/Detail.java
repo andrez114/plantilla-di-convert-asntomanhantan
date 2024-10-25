@@ -31,7 +31,7 @@ public class Detail implements Serializable{
     private Long retailUnitCount;
 
     @JsonProperty("serializedItem")
-    private Long serializedItem;
+    private String serializedItem;
 
     @JsonProperty("shortDescription")
     private String shortDescription;
@@ -134,11 +134,11 @@ public class Detail implements Serializable{
         this.retailUnitCount = retailUnitCount;
     }
 
-    public Long getSerializedItem() {
+    public String getSerializedItem() {
         return serializedItem;
     }
 
-    public void setSerializedItem(Long serializedItem) {
+    public void setSerializedItem(String serializedItem) {
         this.serializedItem = serializedItem;
     }
 
