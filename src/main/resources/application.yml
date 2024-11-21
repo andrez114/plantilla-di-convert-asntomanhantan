@@ -29,11 +29,12 @@ app:
   topicIdDes: COPP_INB_HST_XINT_ASN_GCPQ
   subIdDes: q
 
-  urlAuthServiceManhattan: https://coppp-auth.sce.manh.com/oauth/token?grant_type=password&username=kolea@texcoco&password=-0390Kboo
+  urlAuthServiceManhattan: 'https://copps-auth.sce.manh.com/oauth/token?grant_type=password&username=kolea@texcoco&password=-0390Kboo'
   tokenAuthServiceManhattan: b21uaWNvbXBvbmVudC4xLjAuMDpiNHM4cmdUeWc1NVhZTnVu
-  urlServicePurchaseOrderManhattan: https://coppp.sce.manh.com/receiving/api/receiving/purchaseOrder/?query=PurchaseOrderId=
-  urlMerchandising: https://coppp.sce.manh.com/item-master/api/item-master/item/search
-  urlServiceRestManhattan: https://coppp.sce.manh.com/receiving/api/receiving/asn/bulkImport
+  urlServicePurchaseOrderManhattan: https://copps.sce.manh.com/receiving/api/receiving/purchaseOrder/?query=PurchaseOrderId=
+  urlMerchandising: https://copps.sce.manh.com/item-master/api/item-master/item/search
+  urlServiceRestManhattan: https://copps.sce.manh.com/receiving/api/receiving/asn/bulkImport
+
 
 
 spring:
@@ -43,8 +44,8 @@ spring:
   datasource:
     jdbc-url: jdbc:postgresql://localhost:5432/asn?currentSchema=public&ApplicationName=wms-sys-asn&socketTimeout=30
     driver-class-name: org.postgresql.Driver
-    username: postgres
-    password: hunter
+    username: root
+    password: root
     test-on-borrow: true
     test-while-idle: true
     validation-query: SELECT 1;
@@ -67,8 +68,8 @@ bodega:
     #jdbc-url: jdbc:postgresql://localhost:5432/bodega?currentSchema=public&ApplicationName=di-convert-asntomanhatan&socketTimeout=30
     jdbc-url: jdbc:postgresql://localhost:5432/bodega?currentSchema=public&ApplicationName=di-convert-asntomanhatan&socketTimeout=30
     driver-class-name: org.postgresql.Driver
-    username: postgres
-    password: hunter
+    username: root
+    password: root
     tomcat:
       connection-properties: useUnicode=true;characterEncoding=utf-8;
     hikari:

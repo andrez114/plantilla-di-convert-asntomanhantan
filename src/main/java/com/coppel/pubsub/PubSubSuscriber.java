@@ -338,8 +338,6 @@ public class PubSubSuscriber {
             ArrayList<Datum> tmpData = new ArrayList<>();
             for(String prefijoASN: prefijosASN){
 
-
-
                 Datum data;
                 List<Detail> detalles = detallesGeneral.stream()
                         .filter(item -> item.getAsnReference().startsWith(prefijoASN))
@@ -348,19 +346,19 @@ public class PubSubSuscriber {
                     data = procesaJson(detalles,jsonIn,prefijoASN,tienePrefijo);
                     if (data != null && data.getDestinationFacilityId().equals("30024")) {
                         tmpData.add(data);
+                        String message = new JsonConverter().toJson(new JsonOut(tmpData));
+                        if (publisherMessaje != null) {
+                                asnTexcocoService.insertManhattanAsn(message,data.getAsnId());
+                                messageId = publisherMessaje.publishWithCustomAttributes(appConfig.getProjectIdDes(), appConfig.getTopicIdDes(), message);
+
+                        } else {
+                            logger.warn("Publisher Message is not initialized, unable to publish message: {}", message);
+                        }
+                        tmpData.clear();
+                        logger.info(new LogCustom<>("200", Thread.currentThread().getStackTrace()[1].getMethodName(), messageId, null, message).toJson());
                     }
                 }
             }
-            String message = new JsonConverter().toJson(new JsonOut(tmpData));
-            if (publisherMessaje != null) {
-                if(!tmpData.isEmpty()){
-                    asnTexcocoService.insertManhattanAsn(message, jsonIn.getAsnReference());
-                    messageId = publisherMessaje.publishWithCustomAttributes(appConfig.getProjectIdDes(), appConfig.getTopicIdDes(), message);
-                }
-            } else {
-                logger.warn("Publisher Message is not initialized, unable to publish message: {}", message);
-            }
-            logger.info(new LogCustom<>("200", Thread.currentThread().getStackTrace()[1].getMethodName(), messageId, null, message).toJson());
         } catch (InterruptedException | IOException | ExecutionException e) {
             logger.error("{}", e.getMessage(), e);
             Thread.currentThread().interrupt();
