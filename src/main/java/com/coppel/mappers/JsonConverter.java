@@ -1,17 +1,18 @@
 package com.coppel.mappers;
 
-import com.coppel.util.ServerException;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
+import java.rmi.ServerException;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 
 public class JsonConverter {
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
-    public  <T> T fromJson(String json, Class<T> clazz) {
+    public  <T> T fromJson(String json, Class<T> clazz) throws ServerException {
         try {
             return objectMapper.readValue(json, clazz);
         } catch (JsonParseException e) {
@@ -23,7 +24,7 @@ public class JsonConverter {
         }
     }
 
-    public  String toJson(Object obj) {
+    public  String toJson(Object obj) throws ServerException {
         try {
             return objectMapper.writeValueAsString(obj);
         } catch (JsonProcessingException e) {
@@ -31,8 +32,7 @@ public class JsonConverter {
         }
     }
 
-    public static String convertObjectToJson(Object object)
-    {
+    public static String convertObjectToJson(Object object) throws ServerException {
         try {
             return objectMapper.writeValueAsString(object);
         } catch (JsonProcessingException e) {

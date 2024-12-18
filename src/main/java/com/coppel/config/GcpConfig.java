@@ -21,6 +21,14 @@ public class GcpConfig {
     @Value("${app.desAccess}")
     private String desAccess;
 
+    @Value("${app.projectIdOrigen}")
+    private String projectIdOrigen;
+
+    @Value("${app.subIdOrigen}")
+    private String subIdOrigen;
+
+
+
     @Bean
     public GoogleCredentials googleCredentialsOrigen() throws IOException {
         return createGoogleCredentials(origenAccess);
@@ -36,5 +44,13 @@ public class GcpConfig {
         try (InputStream credentialsStream = new ByteArrayInputStream(decodedKey)) {
             return ServiceAccountCredentials.fromStream(credentialsStream);
         }
+    }
+
+    public String getProjectIdOrigen() {
+        return projectIdOrigen;
+    }
+
+    public String getSubIdOrigen() {
+        return subIdOrigen;
     }
 }
