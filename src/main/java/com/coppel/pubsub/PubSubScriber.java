@@ -61,7 +61,6 @@ public class PubSubScriber {
             subscriber.startAsync().awaitRunning();
             String subName = subscriptionName.toString();
             logger.info("Listening for messages on {}", subName);
-            // Allow the subscriber to run for 30s unless an unrecoverable error occurs.
             subscriber.awaitTerminated();
         } catch (Exception e) {
             logger.error("Error running subscriber: {}", e.getMessage(), e);

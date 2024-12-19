@@ -27,6 +27,9 @@ public class GcpConfig {
     @Value("${app.subIdOrigen}")
     private String subIdOrigen;
 
+    @Value("${app.topicIdOrigen}")
+    private String topicIdOrigen;
+
 
 
     @Bean
@@ -52,5 +55,9 @@ public class GcpConfig {
 
     public String getSubIdOrigen() {
         return subIdOrigen;
+    }
+
+    public String gettopicIdOrigen() {
+        return topicIdOrigen;
     }
 }
