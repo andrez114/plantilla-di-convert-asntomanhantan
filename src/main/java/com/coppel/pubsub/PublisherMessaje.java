@@ -55,12 +55,13 @@ public class PublisherMessaje {
                         .setCredentialsProvider(FixedCredentialsProvider.create(gcpConfig.googleCredentialsDestination()))
                         .build();
 
-                String message = "mensaje de prueba";
+                String message = "{\"nombre\":\"calleja\",\"direccion\":{\"calle\":\"mex\",\"numero\":123}}";
 
                 ByteString data = ByteString.copyFromUtf8(message);
                 PubsubMessage pubsubMessage =
                         PubsubMessage.newBuilder()
                                 .setData(data)
+                                .putAttributes("schema", "projects/" + projectId + "/schemas/spikeorder-sub-esquemaP")
                                 .build();
                 ApiFuture<String> messageIdFuture = publisher.publish(pubsubMessage);
 

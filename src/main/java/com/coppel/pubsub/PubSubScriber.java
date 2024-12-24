@@ -1,9 +1,12 @@
 package com.coppel.pubsub;
+
 import com.google.api.gax.core.FixedCredentialsProvider;
 import com.google.cloud.pubsub.v1.AckReplyConsumer;
 import com.google.cloud.pubsub.v1.MessageReceiver;
+import com.google.protobuf.ByteString;
 import com.google.pubsub.v1.ProjectSubscriptionName;
 import com.google.pubsub.v1.PubsubMessage;
+
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -22,17 +25,14 @@ import org.springframework.stereotype.Component;
 @Component
 public class PubSubScriber {
 
-
     private final Logger logger = LoggerFactory.getLogger(PubSubScriber.class);
 
     private GcpConfig gcpConfig;
     private final ScheduledExecutorService executorService;
 
-
-
-    public PubSubScriber(GcpConfig gcpConfig){
+    public PubSubScriber(GcpConfig gcpConfig) {
         this.gcpConfig = gcpConfig;
-        this.executorService = Executors.newScheduledThreadPool(5);
+        this.executorService = Executors.newScheduledThreadPool(3);
     }
 
     @EventListener(ContextRefreshedEvent.class)
@@ -40,23 +40,29 @@ public class PubSubScriber {
         executorService.scheduleAtFixedRate(this::subcriberAsync, 0, 1, TimeUnit.MINUTES);
     }
 
+    public void subcriberAsync() {
+        new Thread(() -> subscribeTo(gcpConfig.getProjectIdOrigen(), gcpConfig.getSubIdOrigen())).start();
+        new Thread(() -> subscribeTo(gcpConfig.getProjectIdOrigen(), gcpConfig.getSubIdOrigenSecond())).start();
+    }
 
-    public void subcriberAsync(){
+    private void subscribeTo(String projectId, String subId) {
+        ProjectSubscriptionName subscriptionName = ProjectSubscriptionName.of(projectId, subId);
 
-        ProjectSubscriptionName subscriptionName =
-                ProjectSubscriptionName.of(gcpConfig.getProjectIdOrigen(), gcpConfig.getSubIdOrigen());
+        MessageReceiver receiver = (PubsubMessage message, AckReplyConsumer consumer) -> {
+            ByteString data = message.getData();
 
+            String encoding = message.getAttributesMap().get("googclient_schemaencoding");
 
-        MessageReceiver receiver =
-                (PubsubMessage message, AckReplyConsumer consumer) -> {
-                    logger.info("Message received with id : " + message.getMessageId());
-                    logger.info("Data : " + message.getData().toStringUtf8());
-                    consumer.ack();
-                };
+            logger.info("Message received with id : {}", message.getMessageId());
+            logger.info("Data: {}", message.getData().toStringUtf8());
+            consumer.ack();
+        };
 
         Subscriber subscriber = null;
         try {
-            subscriber = Subscriber.newBuilder(subscriptionName, receiver).setCredentialsProvider(FixedCredentialsProvider.create(gcpConfig.googleCredentialsOrigen())).build();
+            subscriber = Subscriber.newBuilder(subscriptionName, receiver)
+                    .setCredentialsProvider(FixedCredentialsProvider.create(gcpConfig.googleCredentialsOrigen()))
+                    .build();
             // Start the subscriber.
             subscriber.startAsync().awaitRunning();
             String subName = subscriptionName.toString();
@@ -67,9 +73,7 @@ public class PubSubScriber {
 
             if (subscriber != null) {
                 subscriber.stopAsync();
-        }
-
+            }
         }
     }
 }
-
